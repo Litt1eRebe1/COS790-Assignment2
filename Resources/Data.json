@@ -1,0 +1,373 @@
+{
+    "problems" : [
+        {
+            "Name": "Fis0506-1",
+            "Courses": 30,
+            "Rooms": 6,
+            "Days": 5,
+            "Periods_per_day": 6,
+            "Curricula": 14,
+            "Constraints": 53,
+            "COURSES": [
+                {
+                    "CourseID": "c0001",
+                    "Teacher": "t000" ,
+                    "Lectures": 6,
+                    "MinWorkingDays": 4,
+                    "Students": 130
+                },
+                {
+                    "CourseID": "c0002",
+                    "Teacher": "t001" ,
+                    "Lectures": 6,
+                    "MinWorkingDays": 4,
+                    "Students": 75
+                },
+                {
+                    "CourseID": "c0004",
+                    "Teacher": "t002" ,
+                    "Lectures": 7,
+                    "MinWorkingDays": 3,
+                    "Students": 117
+                },
+                {
+                    "CourseID": "c0005",
+                    "Teacher": "t003" ,
+                    "Lectures": 3,
+                    "MinWorkingDays": 3,
+                    "Students": 75
+                },
+                {
+                    "CourseID": "c0014",
+                    "Teacher": "t004" ,
+                    "Lectures": 1,
+                    "MinWorkingDays": 1,
+                    "Students": 65
+                },
+                {
+                    "CourseID": "c0015",
+                    "Teacher": "t005" ,
+                    "Lectures": 8,
+                    "MinWorkingDays": 3,
+                    "Students": 65
+                },
+                {
+                    "CourseID": "c0016",
+                    "Teacher": "t006" ,
+                    "Lectures": 7,
+                    "MinWorkingDays": 3,
+                    "Students": 65
+                },
+                {
+                    "CourseID": "c0017",
+                    "Teacher": "t007" ,
+                    "Lectures": 2,
+                    "MinWorkingDays": 2,
+                    "Students": 65
+                },
+                {
+                    "CourseID": "c0024",
+                    "Teacher": "t008" ,
+                    "Lectures": 4,
+                    "MinWorkingDays": 3,
+                    "Students": 55
+                },
+                {
+                    "CourseID": "c0025",
+                    "Teacher": "t009" ,
+                    "Lectures": 8,
+                    "MinWorkingDays": 3,
+                    "Students": 55
+                },
+                {
+                    "CourseID": "c0078",
+                    "Teacher": "t010" ,
+                    "Lectures": 5,
+                    "MinWorkingDays": 4,
+                    "Students": 55
+                },
+                {
+                    "CourseID": "c0030",
+                    "Teacher": "t011" ,
+                    "Lectures": 5,
+                    "MinWorkingDays": 4,
+                    "Students": 20
+                },
+                {
+                    "CourseID": "c0031",
+                    "Teacher": "t012" ,
+                    "Lectures": 5,
+                    "MinWorkingDays": 4,
+                    "Students": 11
+                },
+                {
+                    "CourseID": "c0032",
+                    "Teacher": "t013" ,
+                    "Lectures": 1,
+                    "MinWorkingDays": 1,
+                    "Students": 31
+                },
+                {
+                    "CourseID": "c0033",
+                    "Teacher": "t014" ,
+                    "Lectures": 6,
+                    "MinWorkingDays": 4,
+                    "Students": 31
+                },
+                {
+                    "CourseID": "c0057",
+                    "Teacher": "t015" ,
+                    "Lectures": 5,
+                    "MinWorkingDays": 4,
+                    "Students": 2
+                },
+                {
+                    "CourseID": "c0058",
+                    "Teacher": "t016" ,
+                    "Lectures": 5,
+                    "MinWorkingDays": 4,
+                    "Students": 2
+                },
+                {
+                    "CourseID": "c0059",
+                    "Teacher": "t017" ,
+                    "Lectures": 6,
+                    "MinWorkingDays": 4,
+                    "Students": 7
+                },
+                {
+                    "CourseID": "c0061",
+                    "Teacher": "t018" ,
+                    "Lectures": 6,
+                    "MinWorkingDays": 4,
+                    "Students": 6
+                },
+                {
+                    "CourseID": "c0062",
+                    "Teacher": "t019" ,
+                    "Lectures": 5,
+                    "MinWorkingDays": 4,
+                    "Students": 10
+                },
+                {
+                    "CourseID": "c0064",
+                    "Teacher": "t020" ,
+                    "Lectures": 6,
+                    "MinWorkingDays": 4,
+                    "Students": 6
+                },
+                {
+                    "CourseID": "c0065",
+                    "Teacher": "t021" ,
+                    "Lectures": 6,
+                    "MinWorkingDays": 4,
+                    "Students": 5
+                },
+                {
+                    "CourseID": "c0066",
+                    "Teacher": "t008" ,
+                    "Lectures": 6,
+                    "MinWorkingDays": 4,
+                    "Students": 14
+                },
+                {
+                    "CourseID": "c0067",
+                    "Teacher": "t022" ,
+                    "Lectures": 5,
+                    "MinWorkingDays": 4,
+                    "Students": 7
+                },
+                {
+                    "CourseID": "c0068",
+                    "Teacher": "t023" ,
+                    "Lectures": 6,
+                    "MinWorkingDays": 4,
+                    "Students": 9
+                },
+                {
+                    "CourseID": "c0069",
+                    "Teacher": "t007" ,
+                    "Lectures": 6,
+                    "MinWorkingDays": 4,
+                    "Students": 7
+                },
+                {
+                    "CourseID": "c0070",
+                    "Teacher": "t002" ,
+                    "Lectures": 6,
+                    "MinWorkingDays": 4,
+                    "Students": 4
+                },
+                {
+                    "CourseID": "c0071",
+                    "Teacher": "t001" ,
+                    "Lectures": 6,
+                    "MinWorkingDays": 4,
+                    "Students": 10
+                },
+                {
+                    "CourseID": "c0072",
+                    "Teacher": "t003" ,
+                    "Lectures": 6,
+                    "MinWorkingDays": 4,
+                    "Students": 9
+                }
+            ],
+            "ROOMS": [
+                {
+                    "name": "B",
+                    "occupancy": 200
+                },
+                {
+                    "name": "C",
+                    "occupancy": 100
+                },
+                {
+                    "name": "E",
+                    "occupancy": 9
+                },
+                {
+                    "name": "F",
+                    "occupancy": 30
+                },
+                {
+                    "name": "G",
+                    "occupancy": 20
+                },
+                {
+                    "name": "S",
+                    "occupancy": 30
+                }
+            ],
+            "CURRICULA" : [
+                {
+                    "name": "q000",
+                    "num_courses": 4,
+                    "courses": [
+                        "c0001",
+                        "c0002",
+                        "c0004",
+                        "c0005"
+                    ]
+                },
+                {
+                    "name": "q001",
+                    "num_courses": 4,
+                    "courses": [
+                        "c0014",
+                        "c0015",
+                        "c0016",
+                        "c0017"
+                    ]
+                },
+                {
+                    "name": "q002",
+                    "num_courses": 4,
+                    "courses": [
+                        "c0024",
+                        "c0025",
+                        "c0001",
+                        "c0078"
+                    ]
+                },
+                {
+                    "name": "q003",
+                    "num_courses": 3,
+                    "courses": [
+                        "c0030",
+                        "c0032",
+                        "c0033"
+                    ]
+                },
+                {
+                    "name": "q004",
+                    "num_courses": 3,
+                    "courses": [
+                        "c0031",
+                        "c0032",
+                        "c0033"
+                    ]
+                },
+                {
+                    "name": "q005",
+                    "num_courses": 3,
+                    "courses": [
+                        "c0070",
+                        "c0066",
+                        "c0072"
+                    ]
+                },
+                {
+                    "name": "q006",
+                    "num_courses": 2,
+                    "courses": [
+                        "c0057",
+                        "c0059"
+                    ]
+                },
+                {
+                    "name": "q007",
+                    "num_courses": 2,
+                    "courses": [
+                        "c0061",
+                        "c0062"
+                    ]
+                },
+                {
+                    "name": "q008",
+                    "num_courses": 3,
+                    "courses": [
+                        "c0065",
+                        "c0059",
+                        "c0072"
+                    ]
+                },
+                {
+                    "name": "q009",
+                    "num_courses": 4,
+                    "courses": [
+                        "c0063",
+                        "c0064",
+                        "c0066",
+                        "c0071"
+                    ]
+                },
+                {
+                    "name": "q010",
+                    "num_courses": 3,
+                    "courses": [
+                        "c0058",
+                        "c0063",
+                        "c0068"
+                    ]
+                },
+                {
+                    "name": "q011",
+                    "num_courses": 3,
+                    "courses": [
+                        "c0069",
+                        "c0067",
+                        "c0068"
+                    ]
+                },
+                {
+                    "name": "q012",
+                    "num_courses": 1,
+                    "courses": [
+                        "c0004"
+                    ]
+                },
+                {
+                    "name": "q013",
+                    "num_courses": 3,
+                    "courses": [
+                        "c0062",
+                        "c0066",
+                        "c0071"
+                    ]
+                }
+            ]
+        }
+    ]
+    
+}
