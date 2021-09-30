@@ -28,6 +28,7 @@ class Reader:
                     "Students": course['Students'],
                     "SaturationDegree": 0,
                     "Degree": 0,
+                    "WorkingDays": 0,
                     "RoomDegree": 0
                 }
                 new_courses.append(new_course)

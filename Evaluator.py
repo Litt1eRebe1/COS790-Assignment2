@@ -1,27 +1,75 @@
-
+import random
 #. Each element of the population
 # represents a construction heuristic and combines the problem
 # characteristics together with a period selection heuristic. 
 class Evaluator:
-    def __init__(self, problems, rooms, courses, days, curricula, num_roooms, periods_per_day):
+    def __init__(self, seed, problems, rooms, courses, days, curricula, num_roooms, periods_per_day):
         self.problems = problems
         self.rooms = rooms
         self.courses = courses
         self.days = days
         self.curricula = curricula
         self.num_rooms = num_roooms
-
+        self.seed = seed
+        random.seed(seed)
         self.timetable = Timetable(periods_per_day, days, self.num_rooms, self.rooms)
 
-        self.evaluateRoomDegree()
+        # self.evaluateRandomPeriod(self.courses[0]) # works so far
+        # self.evaluateFirstPeriod(self.courses[1])
+        # self.evaluateFirstPeriod(self.courses[2])
+        # self.evaluateFirstPeriod(self.courses[3])
+        # self.evaluateFirstPeriod(self.courses[4])
+
+        # self.evaluateRandomPeriod(self.courses[0]) # works so far
+        # self.evaluateRandomPeriod(self.courses[1])
+        # self.evaluateRandomPeriod(self.courses[2])
+        # self.evaluateRandomPeriod(self.courses[3])
+        # self.evaluateRandomPeriod(self.courses[4])
+
+
+        # self.evaluateMinimumPenaltyPeriod(self.courses[0]) # works so far
+        # self.evaluateMinimumPenaltyPeriod(self.courses[1])
+        # self.evaluateMinimumPenaltyPeriod(self.courses[2])
+        # self.evaluateMinimumPenaltyPeriod(self.courses[3])
+        # self.evaluateMinimumPenaltyPeriod(self.courses[4])
+        # self.evaluateMinimumPenaltyPeriod(self.courses[5])
+        # self.timetable.print()
 
       
 
     def evaluate(self, tree):
-        pass
+     
+        self.evaluateHelper(tree.root)
+        self.timetable.print()
 
     def evaluateHelper(self, node):
-        pass
+        if node == None: #end it is finished
+            return
+        if node.terminal == False:
+            # continue going
+            for child in node.children:
+                self.evaluateHelper(child)
+        else:
+            if node.id == 0: #Saturation degre
+                self.evaluateSaturationDegree()
+            elif node.id == 1: #Number of student
+                self.evaluateNumberOfStudents()
+            elif node.id == 2: #Largest degree
+                self.evaluateLargestDegree()
+            elif node.id == 3: #Lectures
+                self.evaluateLectures()
+            elif node.id == 4: #"Minimum number of working days
+                self.evaluateMinimumNumOfWorkingDays()
+            elif node.id == 5: #Room degree
+                self.evaluateRoomDegree()
+            elif node.id == 6: #First Period
+                self.evaluateFirstPeriod()
+            elif node.id == 7: #Random Period
+                self.evaluateRandomPeriod()
+            elif node.id == 8: #Minimum Penalty Period
+                self.evaluateMinimumPenaltyPeriod()
+
+
 
     def evaluateSaturationDegree(self): #- The lectures with the least
                                         #number of feasible periods in the timetable at the current
@@ -154,8 +202,6 @@ class Evaluator:
     def evaluateLectures(self):
         self.courses.sort(key=lambda x: x['Lectures'], reverse=True)
       
-    def evaluateUnavailability(self):
-        pass
 
     def evaluateMinimumNumOfWorkingDays(self):
         self.courses.sort(key=lambda x: x['MinWorkingDays'], reverse=True)
@@ -180,15 +226,28 @@ class Evaluator:
 
     # Three options were considered for deciding which
     # period in the timetable to schedule the chosen lecture in:
-    def evaluateFirstPeriod(self, course):
+    def evaluateFirstPeriod(self):
+        course = self.getCourse()
         scheduled = False
         while scheduled == False:
-            copy_timetable = self.timetable.copy()
-            for day in copy_timetable.days:
-                for period in day:
-                    for room in period:
-                        if room['slot']['CourseID'] == None: #room is empty
-                            room = self.scheduleExam(course, room)
+            for day in range(0, len(self.timetable.days)):
+                for period in range(0, len(self.timetable.days[day])):
+                    for room in range(0, len(self.timetable.days[day][period])):
+                        if self.timetable.days[day][period][room]['slot']['CourseID'] == None: #room is empty
+                            self.timetable.days[day][period][room] = self.scheduleExam(course, self.timetable.days[day][period][room])
+                            hard_constraints = self.checkHardConstraintCourseForPeriod(course, self.timetable.days[day][period])
+                            if hard_constraints == False: #hard constraints violated
+                                self.timetable.days[day][period][room] = self.removeExam(self.timetable.days[day][period][room])
+                            else:
+                                scheduled = True
+                                return True #it has been scheduled
+        return scheduled
+
+    def getCourse(self):
+        if len(self.courses) > 0:
+            return self.courses[0]
+        else:
+            return 0
 
     def scheduleExam(self, course, room):
         room['slot']['CourseID'] = course['CourseID']
@@ -203,25 +262,88 @@ class Evaluator:
         return room
 
     def evaluateRandomPeriod(self):
-        pass
+        course = self.getCourse()
+        available_rooms = self.getFeasibleRooms(course)
+        if len(available_rooms) > 0:
+            self.seed = self.seed + 1
+            random.seed(self.seed)
+            choice = random.randint(0, len(available_rooms) - 1)
+
+            available_rooms[choice] = self.scheduleExam(course, available_rooms[choice])
+            return True
+        else:
+            return False
+
+    def getFeasibleRooms(self, course):
+        availble_rooms = []
+       
+        for day in range(0, len(self.timetable.days)):
+            for period in range(0, len(self.timetable.days[day])):
+                for room in range(0, len(self.timetable.days[day][period])):
+                    if self.timetable.days[day][period][room]['slot']['CourseID'] == None: #can try schedule
+                        self.timetable.days[day][period][room] = self.scheduleExam(course, self.timetable.days[day][period][room])
+                        available = self.checkHardConstraintCourseForPeriod(course, self.timetable.days[day][period])
+                        if available == True:
+                            availble_rooms.append(self.timetable.days[day][period][room])
+                        
+                        self.timetable.days[day][period][room] = self.removeExam(self.timetable.days[day][period][room])
+        return availble_rooms
 
     def evaluateMinimumPenaltyPeriod(self):
-        pass
+        course = self.getCourse()
+        availble_rooms = self.getFeasibleRooms(course)
+
+        soft_constraint = self.checkSoftConstraints(course, availble_rooms[0])
+        softest_room = {
+            "room" : availble_rooms[0],
+            "soft_score": soft_constraint
+        }
+        for room in range(1, len(availble_rooms)):
+            soft_constraint = self.checkSoftConstraints(course, availble_rooms[room])
+            if soft_constraint < softest_room['soft_score']:
+                softest_room['room'] = availble_rooms[room]
+                softest_room['soft_score'] = soft_constraint
+                
+        softest_room['room'] = self.scheduleExam(course, softest_room['room'])
+
 
     def evaluateCombineCharacteristicPeriod(self):
-        pass
+        pass  # @TODO
 
     def evaluateCombineCharacteristic(self):
-        pass
+        pass  # @TODO
 
     
 
     def checkHardConstraints(self):
-        pass
+        num_violations = 0
+        for day in self.timetable.days:
+            for periods in day:
+                for rooms in periods:
+                    violates = self.checkHardConstraintCourseForPeriod(rooms['CourseID'], periods)
+                    if violates == True:
+                        num_violations = num_violations + 1
 
-    def checkHardConstraintCourseForSlot(self, course, slot):
-        pass
+        return num_violations
 
+    def checkHardConstraintCourseForPeriod(self, course, period):
+   
+        num_to_be_scheduled = course['Lectures'] - self.numLectureScheduled(course['CourseID'])
+        clashes = self.checkConflictsTimetableCourse(course)
+        teacher_available = self.checkAvailabilityInPeriod(course['Teacher'], period)
+        
+        if num_to_be_scheduled >= 0 and clashes[0]['num_clashes'] == 0 and teacher_available == True:
+            return True
+        else:
+            return False
+
+    def checkAvailabilityInPeriod(self, teacher, period):
+        count_teacher = 0
+        for room in period:
+            if room['slot']['Teacher'] == teacher:
+                count_teacher = count_teacher + 1
+
+        return count_teacher <= 1
 
     def checkLectureAllocations(self):
         lectures_scheduled = True
@@ -247,6 +369,25 @@ class Evaluator:
                         all_courses = self.findCurriculaCourses(s['slot']['CourseID'])
                         for inner_room in d[i]:
                             if s['slot']['CourseID'] != inner_room['slot']['CourseID']:
+                                if inner_room['slot']['CourseID'] in all_courses:
+                                    clash["num_clashes"] = clash["num_clashes"] + 1
+                        clashes.append(clash)
+
+        return clashes
+
+    def checkConflictsTimetableCourse(self, course): 
+        clashes = []
+        for day in self.timetable.days:
+            for period in day:
+                for room in period:
+                    if room['slot']['CourseID'] == course['CourseID']:
+                        clash = {
+                            "CourseID": course['CourseID'],
+                            "num_clashes": 0
+                        }
+                        all_courses = self.findCurriculaCourses(course['CourseID'])
+                        for inner_room in period:
+                            if course['CourseID'] != inner_room['slot']['CourseID']:
                                 if inner_room['slot']['CourseID'] in all_courses:
                                     clash["num_clashes"] = clash["num_clashes"] + 1
                         clashes.append(clash)
@@ -293,8 +434,29 @@ class Evaluator:
 
         return count
 
-    def checkSoftConstraints(self):
-        pass
+    def checkSoftConstraints(self, course, room):
+        room_capacity = self.checkRoomCapacityPerRoom(course, room)
+        course_working_days =  self.checkWorkingDaysPerRoom(course, room)
+        room = self.scheduleExam(course, room)
+        num_rooms_used = self.calculateRoomStabilityPerCourse(course) - 1
+
+        room = self.removeExam(room)
+
+        
+
+        constraint_cost = course_working_days
+        constraint_cost = constraint_cost + num_rooms_used
+        if room_capacity == False:
+            constraint_cost = constraint_cost * 1.5
+        else:
+            constraint_cost = constraint_cost * 1
+        
+
+        return constraint_cost
+
+
+    def checkRoomCapacityPerRoom(self, course, room):
+        return course['Students'] > room['capacity']
 
     def checkRoomCapacity(self):
         courses_over = []
@@ -310,6 +472,15 @@ class Evaluator:
                             }
                             courses_over.append(over)
         return courses_over
+
+    def checkWorkingDaysPerRoom(self, course, room):
+        room = self.scheduleExam(course, room)
+        for c in self.checkWorkingDays():
+            if c['CourseID'] == course['CourseID']:
+                # found course
+                room = self.removeExam(room)
+                return abs(c['MinWorkingDays'] - c['WorkingDays'])
+        return course['WorkingDays']
 
     def checkWorkingDays(self):
         temp_courses = []
@@ -328,28 +499,26 @@ class Evaluator:
             for course in temp_courses:
                 for day in self.timetable.days:
                     course_found = False
-                    for period in day:  
-                        if period['course']['CourseID'] != None and period['course']['CourseID'] == course['CourseID']:
-                            course_found = True
+                    for period in day: 
+                        for room in period: 
+                            if room['slot']['CourseID'] != None and room['slot']['CourseID'] == course['CourseID']:
+                                course_found = True
                     
-                    if course_found == True:
-                        course['WorkingDays'] = course['WorkingDays'] + 1
+                        if course_found == True:
+                            course['WorkingDays'] = course['WorkingDays'] + 1
             return_courses = []
-            for course in temp_course:
+            for course in temp_courses:
+            
                 if course['WorkingDays'] < course['MinWorkingDays']:
                     return_courses.append(course)
 
 
             return return_courses
 
-    def calculateCurriculumCompactness(self):
-        #bruh why
-        pass
 
     def calculateRoomStability(self):
         #All the lectures for a course should be
         # scheduled in the same venue
-        rooms_array = []
         num_mismatches = 0
         for day in self.timetable.days:
             for slot in day:
@@ -368,6 +537,20 @@ class Evaluator:
                                     
         return num_mismatches
 
+    def calculateRoomStabilityPerCourse(self, course):
+        rooms_used = []
+        for day in self.timetable.days:
+            for slot in day:
+                for room in slot:
+                    if room['slot']['CourseID'] == course['CourseID']:
+                        rooms_used.append(room['name'])
+                  
+        mismatches = []
+        for room in rooms_used:
+            if room not in mismatches:
+                mismatches.append(room)
+
+        return len(mismatches)
 
     def coursesInRooms(self, room):
         for day in self.timetable.days:
@@ -435,6 +618,18 @@ class Timetable:
                 slots.append(rooms)
        
             self.days.append(slots)
+
+    def print(self):
+        i = 1
+        for day in self.days:
+            print("--------- DAY ( " + str(i) + " ) -----------")
+            i = i + 1
+            p = 1
+            for period in day:
+                print("\n ++++++ PERIOD ( " + str(p) + " ) ++++++")
+                p = p + 1
+                for room in period:
+                    print(room)
 
     def copy(self):
         new_timetable = Timetable(self.num_classes, self.num_days, self.num_rooms, self.rooms)

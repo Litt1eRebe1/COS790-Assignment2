@@ -16,11 +16,16 @@ class Population:
         self.periods_per_day = periods_per_day
         self.num_rooms = num_rooms
 
-        self.evaluator = Evaluator(self.problems, self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day)
+        self.evaluator = Evaluator(self.seed, self.problems, self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day)
         self.createPopulation()
 
+        self.evaluatePopulation()
+
         
-    
+    def evaluatePopulation(self):
+        self.evaluator.evaluate(self.individuals[0].tree)
+
+
     def createPopulation(self):
     
         for i in range(0, int(self.num_individuals / 2)):
@@ -56,11 +61,14 @@ class Chromosome:
             self.tree = Tree(self.seed)
             self.tree.createGrow()
             
+    
 
     def showTree(self):
         print("\n")
         print("--------- show tree ---------")
         self.tree.showTree(self.tree.root)
+
+
 class Tree:
     def __init__(self, seed, max_depth = 6, tree = None):
         if tree != None:
@@ -85,22 +93,20 @@ class Tree:
         new_node = Node(True, "Lectures", 3, 'characteristics')
         self.terminal_set.append(new_node)
 
-        new_node = Node(True, "Unavailability", 4, 'characteristics')
+
+        new_node = Node(True, "Minimum number of working days", 4, 'characteristics')
         self.terminal_set.append(new_node)
 
-        new_node = Node(True, "Minimum number of working days", 5, 'characteristics')
+        new_node = Node(True, "Room degree", 5, 'characteristics')
         self.terminal_set.append(new_node)
 
-        new_node = Node(True, "Room degree", 6, 'characteristics')
+        new_node = Node(True, "First Period", 6, 'period')
         self.terminal_set.append(new_node)
 
-        new_node = Node(True, "First Period", 7, 'period')
+        new_node = Node(True, "Random Period", 7, 'period')
         self.terminal_set.append(new_node)
 
-        new_node = Node(True, "Random Period", 8, 'period')
-        self.terminal_set.append(new_node)
-
-        new_node = Node(True, "Minimum Penalty Period", 9, 'period')
+        new_node = Node(True, "Minimum Penalty Period", 8, 'period')
         self.terminal_set.append(new_node)
 
     def createFuntionalSet(self):
@@ -115,6 +121,7 @@ class Tree:
         
 
     def returnFuntionalNode(self):
+
         choice = random.randint(0, len(self.functional_set) - 1)   
         return self.functional_set[choice].copy()
 
@@ -226,14 +233,13 @@ class Tree:
             return node
 
     def showTree(self, node = None, level = 0):
-        # print("LEVEL")
-        # print(level)
+       
         if node == None:
             pass
       
         elif level == 0:
             # at root
-           
+    
             print(self.root.description)
             
             for i in range(0, self.root.num_children):
