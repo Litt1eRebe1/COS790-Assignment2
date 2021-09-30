@@ -27,7 +27,8 @@ class Reader:
                     "MinWorkingDays": course['MinWorkingDays'],
                     "Students": course['Students'],
                     "SaturationDegree": 0,
-                    "LargestDegree": 0
+                    "Degree": 0,
+                    "RoomDegree": 0
                 }
                 new_courses.append(new_course)
             self.courses = new_courses

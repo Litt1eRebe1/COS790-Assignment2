@@ -13,7 +13,7 @@ class Evaluator:
 
         self.timetable = Timetable(periods_per_day, days, self.num_rooms, self.rooms)
 
-        self.evaluateSaturationDegree()
+        self.evaluateRoomDegree()
 
       
 
@@ -23,7 +23,9 @@ class Evaluator:
     def evaluateHelper(self, node):
         pass
 
-    def evaluateSaturationDegree(self):
+    def evaluateSaturationDegree(self): #- The lectures with the least
+                                        #number of feasible periods in the timetable at the current
+                                        #point of construction are given priority
         for course in self.courses:
             if self.allClassesScheduled(course): 
                 course['SaturationDegree'] = 9999 # does not need to be scheduled anymore
@@ -31,7 +33,7 @@ class Evaluator:
                 course['SaturationDegree'] = self.lectureScheduleFeasibility(course['CourseID'])
 
 
-        self.courses.sort(key=lambda x: x.count, reverse=True)
+        self.courses.sort(key=lambda x: x['SaturationDegree'], reverse=False)
 
 
     def allClassesScheduled(self, course):
@@ -118,27 +120,87 @@ class Evaluator:
         
 
     def evaluateNumberOfStudents(self):
-        pass
+        self.courses.sort(key=lambda x: x['Students'], reverse=True)
 
-    def evaluateLargestDegree(self):
-        pass
+    def evaluateLargestDegree(self): #- The lectures that have the largest
+                                    # number of potential clashes are given priority to be
+                                    # scheduled.
+        for course in self.courses:
+            course['Degree'] = self.getNumberOfPotentialClashes(course['CourseID'])
+
+        self.courses.sort(key=lambda x: x['Degree'], reverse=True)
+      
+        
+    def getNumberOfPotentialClashes(self, courseID):
+        potential_clashes = 0
+        for day in self.timetable.days:
+                for period in day:  
+                    period_available = self.emptyRoomInPeriod(period)
+                    if period_available["available"] == True: #there is room in period?
+                        for room in period_available['rooms']:
+                            if room['teacher'] == None:
+                                teacher_available = True
+                            else:
+                                teacher_available = self.checkTeacherAvailibility(room['teacher'])
+                            if teacher_available == True: # the teacher is available in the period?
+                                room_big_enough = self.checkRoomCapacityEnough(room, courseID)
+                                if room_big_enough == True: # the room is big enough?
+                                    conflicts = not self.checkCurriculumConflicts(courseID, period)
+                                    if conflicts == True: # the curriculum is not clashing?
+                                        potential_clashes = potential_clashes + 1
+
+        return potential_clashes
 
     def evaluateLectures(self):
-        pass
-
+        self.courses.sort(key=lambda x: x['Lectures'], reverse=True)
+      
     def evaluateUnavailability(self):
         pass
 
     def evaluateMinimumNumOfWorkingDays(self):
-        pass
+        self.courses.sort(key=lambda x: x['MinWorkingDays'], reverse=True)
 
     def evaluateRoomDegree(self):
-        pass
+        for course in self.courses:
+            course['RoomDegree'] = self.roomDegree(course)
+
+        self.courses.sort(key=lambda x: x['RoomDegree'], reverse=False)
+
+
+    def roomDegree(self, course):
+        degree = 0
+        for day in self.timetable.days:
+            for period in day: 
+                for room in period:
+                    if room['slot']['CourseID'] == None: # not shceduled yet
+                        if room['capacity'] >= course['Students']:
+                            degree = degree + 1
+
+        return degree
 
     # Three options were considered for deciding which
     # period in the timetable to schedule the chosen lecture in:
-    def evaluateFirstPeriod(self):
-        pass
+    def evaluateFirstPeriod(self, course):
+        scheduled = False
+        while scheduled == False:
+            copy_timetable = self.timetable.copy()
+            for day in copy_timetable.days:
+                for period in day:
+                    for room in period:
+                        if room['slot']['CourseID'] == None: #room is empty
+                            room = self.scheduleExam(course, room)
+
+    def scheduleExam(self, course, room):
+        room['slot']['CourseID'] = course['CourseID']
+        room['slot']['Teacher'] = course['Teacher']
+
+        return room
+
+    def removeExam(self, room):
+        room['slot']['CourseID'] = None
+        room['slot']['Teacher'] = None
+
+        return room
 
     def evaluateRandomPeriod(self):
         pass
@@ -157,6 +219,10 @@ class Evaluator:
     def checkHardConstraints(self):
         pass
 
+    def checkHardConstraintCourseForSlot(self, course, slot):
+        pass
+
+
     def checkLectureAllocations(self):
         lectures_scheduled = True
         for c in self.courses:
@@ -165,6 +231,8 @@ class Evaluator:
                 lectures_scheduled = False
 
         return lectures_scheduled
+
+
 
     def checkConflicts(self):
         clashes = []
@@ -368,4 +436,23 @@ class Timetable:
        
             self.days.append(slots)
 
-      
+    def copy(self):
+        new_timetable = Timetable(self.num_classes, self.num_days, self.num_rooms, self.rooms)
+        new_timetable.days = []
+
+        for day in self.days:
+            slots = []
+            for slot in day:
+                rooms = []
+                for room in slot:
+                    rooms.append({
+                        "name": room['name'],
+                        "capacity": room['occupancy'],
+                        "slot" : {
+                            "CourseID": room['slot']['CourseID'],
+                            "Teacher": room['slot']['Teacher'] 
+                        }
+                    })
+                slots.append(rooms)
+            new_timetable.days.append(slots)
+        return new_timetable
