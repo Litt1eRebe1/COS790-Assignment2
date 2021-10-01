@@ -12,6 +12,7 @@ class Evaluator:
         self.num_rooms = num_roooms
         self.seed = seed
         random.seed(seed)
+        self.copy_courses = self.courses.copy()
         self.timetable = Timetable(periods_per_day, days, self.num_rooms, self.rooms)
 
         # self.evaluateRandomPeriod(self.courses[0]) # works so far
@@ -38,11 +39,34 @@ class Evaluator:
       
 
     def evaluate(self, tree):
-     
-        self.evaluateHelper(tree.root)
-        self.timetable.print()
+        count = 0
+        # print('\n')
+        # print('\n')
+        # print('\n')
+        # print('\n')
+        # print('\n')
+        # print('\n')
+        # print('\n')
+        # print('\n')
+        # print('\n')
+        # print('\n')
+        # print('\n')
+        # print('\n')
+        # print('\n')
+        # print("num courses: " + str(len(self.courses)))
+        while count < 1000 and self.allScheduled() == False:
+            self.evaluateHelper(tree.root)
+            count = count + 1
+
+            
+        # self.timetable.print()
+
+    
+    def allScheduled(self):
+        return len(self.courses) == 0
 
     def evaluateHelper(self, node):
+       
         if node == None: #end it is finished
             return
         if node.terminal == False:
@@ -227,27 +251,41 @@ class Evaluator:
     # Three options were considered for deciding which
     # period in the timetable to schedule the chosen lecture in:
     def evaluateFirstPeriod(self):
-        course = self.getCourse()
-        scheduled = False
-        while scheduled == False:
-            for day in range(0, len(self.timetable.days)):
-                for period in range(0, len(self.timetable.days[day])):
-                    for room in range(0, len(self.timetable.days[day][period])):
-                        if self.timetable.days[day][period][room]['slot']['CourseID'] == None: #room is empty
-                            self.timetable.days[day][period][room] = self.scheduleExam(course, self.timetable.days[day][period][room])
-                            hard_constraints = self.checkHardConstraintCourseForPeriod(course, self.timetable.days[day][period])
-                            if hard_constraints == False: #hard constraints violated
-                                self.timetable.days[day][period][room] = self.removeExam(self.timetable.days[day][period][room])
-                            else:
-                                scheduled = True
-                                return True #it has been scheduled
-        return scheduled
+        if True:
+            scheduled = False
+            while scheduled == False:
+                course = self.getCourse()
+                if course != None:
+                    for day in range(0, len(self.timetable.days)):
+                        for period in range(0, len(self.timetable.days[day])):
+                            for room in range(0, len(self.timetable.days[day][period])):
+                                if self.timetable.days[day][period][room]['slot']['CourseID'] == None: #room is empty
+                                    self.timetable.days[day][period][room] = self.scheduleExam(course, self.timetable.days[day][period][room])
+                                    hard_constraints = self.checkHardConstraintCourseForPeriod(course, self.timetable.days[day][period])
+                                    
+                                    if hard_constraints == False: #hard constraints violated
+                                        self.timetable.days[day][period][room] = self.removeExam(self.timetable.days[day][period][room])
+                                        
+                                    else:
+                                        # print("++++ SCHEDULED +++ : " + str(len(self.courses)))
+                                        scheduled = True
+                                        return True #it has been scheduled
+                    if scheduled == False:
+                        self.addCourse(course)
+                        # print("--- not scheduled ---- : " + str(len(self.courses)))
+                else:
+                    return True
+            return scheduled
+        return True #all scheduled
 
     def getCourse(self):
         if len(self.courses) > 0:
-            return self.courses[0]
+            return self.courses.pop(0)
         else:
-            return 0
+            return None
+
+    def addCourse(self, course):
+        self.courses.append(course)
 
     def scheduleExam(self, course, room):
         room['slot']['CourseID'] = course['CourseID']
@@ -263,18 +301,22 @@ class Evaluator:
 
     def evaluateRandomPeriod(self):
         course = self.getCourse()
-        available_rooms = self.getFeasibleRooms(course)
-        if len(available_rooms) > 0:
-            self.seed = self.seed + 1
-            random.seed(self.seed)
-            choice = random.randint(0, len(available_rooms) - 1)
+        if course != None:
+            available_rooms = self.getFeasibleRooms(course)
+            if len(available_rooms) > 0:
+                self.seed = self.seed + 1
+                random.seed(self.seed)
+                choice = random.randint(0, len(available_rooms) - 1)
 
-            available_rooms[choice] = self.scheduleExam(course, available_rooms[choice])
-            return True
-        else:
-            return False
+                available_rooms[choice] = self.scheduleExam(course, available_rooms[choice])
+                return True
+            else:
+                self.addCourse(course)
+                return False
+        return True #all scheduled
 
     def getFeasibleRooms(self, course):
+        
         availble_rooms = []
        
         for day in range(0, len(self.timetable.days)):
@@ -291,20 +333,21 @@ class Evaluator:
 
     def evaluateMinimumPenaltyPeriod(self):
         course = self.getCourse()
-        availble_rooms = self.getFeasibleRooms(course)
-
-        soft_constraint = self.checkSoftConstraints(course, availble_rooms[0])
-        softest_room = {
-            "room" : availble_rooms[0],
-            "soft_score": soft_constraint
-        }
-        for room in range(1, len(availble_rooms)):
-            soft_constraint = self.checkSoftConstraints(course, availble_rooms[room])
-            if soft_constraint < softest_room['soft_score']:
-                softest_room['room'] = availble_rooms[room]
-                softest_room['soft_score'] = soft_constraint
-                
-        softest_room['room'] = self.scheduleExam(course, softest_room['room'])
+        if course != None:
+            availble_rooms = self.getFeasibleRooms(course)
+            
+            soft_constraint = self.checkSoftConstraints(course, availble_rooms[0])
+            softest_room = {
+                "room" : availble_rooms[0],
+                "soft_score": soft_constraint
+            }
+            for room in range(1, len(availble_rooms)):
+                soft_constraint = self.checkSoftConstraints(course, availble_rooms[room])
+                if soft_constraint < softest_room['soft_score']:
+                    softest_room['room'] = availble_rooms[room]
+                    softest_room['soft_score'] = soft_constraint
+                    
+            softest_room['room'] = self.scheduleExam(course, softest_room['room'])
 
 
     def evaluateCombineCharacteristicPeriod(self):
@@ -313,24 +356,54 @@ class Evaluator:
     def evaluateCombineCharacteristic(self):
         pass  # @TODO
 
-    
+    def calculateFitness(self):
+        hard_constraints = self.checkHardConstraints() # check fotness
+        soft_constraints = self.checkSoftConstraintsAll() 
+
+        return hard_constraints + soft_constraints
 
     def checkHardConstraints(self):
         num_violations = 0
         for day in self.timetable.days:
             for periods in day:
                 for rooms in periods:
-                    violates = self.checkHardConstraintCourseForPeriod(rooms['CourseID'], periods)
-                    if violates == True:
-                        num_violations = num_violations + 1
+                    if rooms['slot']['CourseID'] != None:
+                        course = self.findCourseByID(rooms['slot']['CourseID'])
+                        violates = self.checkHardConstraintCourseForPeriod(course, periods)
+                        if violates == True:
+                            num_violations = num_violations + 1
 
         return num_violations
 
+    def checkHardConstraintsRow(self, day):
+        num_violations = 0
+        for periods in self.timetable.days[day]:
+            for rooms in periods:
+                if rooms['slot']['CourseID'] != None:
+                    course = self.findCourseByID(rooms['slot']['CourseID'])
+                    violates = self.checkHardConstraintCourseForPeriod(course, periods)
+                    if violates == True:
+                        num_violations = num_violations + 1   
+
+        return num_violations
+
+    def findCourseInRoom(self, room):
+        for course in self.copy_courses:
+            if course['CourseID'] == room['slot']['CourseID']:
+                return course
+
+    def findCourseByID(self, courseID):
+        for course in self.copy_courses:
+            if course['CourseID'] == courseID:
+                return course
+
     def checkHardConstraintCourseForPeriod(self, course, period):
-   
         num_to_be_scheduled = course['Lectures'] - self.numLectureScheduled(course['CourseID'])
+        # print('num_to_be_scheduled  ' + str(num_to_be_scheduled))
         clashes = self.checkConflictsTimetableCourse(course)
+        # print('clashes  ' + str(clashes))
         teacher_available = self.checkAvailabilityInPeriod(course['Teacher'], period)
+        # print('teacher_available  ' + str(teacher_available))
         
         if num_to_be_scheduled >= 0 and clashes[0]['num_clashes'] == 0 and teacher_available == True:
             return True
@@ -453,7 +526,27 @@ class Evaluator:
         
 
         return constraint_cost
+    
+    def checkSoftConstraintsAll(self):
+        total_constraint_cost = 0
+        for day in self.timetable.days:
+            for period in day:
+                for room in period:
+                    course_check = self.findCourseByID(room['slot']['CourseID'])
+                    if course_check != None:
+                        room_capacity = self.checkRoomCapacityPerRoom(course_check, room)
+                        course_working_days =  self.checkWorkingDaysPerRoom(course_check, room)
+                        num_rooms_used = self.calculateRoomStabilityPerCourse(course_check) - 1
 
+                        constraint_cost = course_working_days
+                        constraint_cost = constraint_cost + num_rooms_used
+                        if room_capacity == False:
+                            constraint_cost = constraint_cost * 1.5
+                        else:
+                            constraint_cost = constraint_cost * 1
+                        total_constraint_cost = total_constraint_cost + constraint_cost
+        
+        return total_constraint_cost
 
     def checkRoomCapacityPerRoom(self, course, room):
         return course['Students'] > room['capacity']
@@ -514,7 +607,7 @@ class Evaluator:
 
 
             return return_courses
-
+        return []
 
     def calculateRoomStability(self):
         #All the lectures for a course should be
@@ -592,6 +685,192 @@ class Evaluator:
         for s in self.courses:
             if s['CourseID'] == courseID:
                 return s['Lectures']
+
+    
+    def applyPerturbativeHeuristics(self, node):
+        #  Two violation mutation - Two cells in the matrix causing constraint violations are
+        # identified, and the contents of the cells are swapped.
+        if node.id == 0:
+            self.twoViolationMutation()
+        #  One violation mutation - The contents of a cell resulting in a constraint violation is
+        # swapped with that of a randomly selected cell.
+        if node.id == 1:
+            self.oneViolationMutation()
+        #  Random swap - Two cells are randomly selected and the contents swapped.
+        if node.id == 2:
+            self.randomRoomSwap()
+        #  Row swap - The contents of the cells in two randomly selected rows are swapped.
+        if node.id == 3:
+            self.rowSwap()
+        #  One violation row swap - The contents of a row containing a tuple causing a violation
+        # is swapped with that of a randomly chosen row.
+        if node.id == 4:
+            self.oneRowSwap()
+
+    def rowSwap(self):
+        violating_rows = self.findRowViolations()
+        if len(violating_rows) >= 2: #can do
+            self.seed = self.seed + 1
+            random.seed(self.seed)
+            choice1 = random.randint(0, len(violating_rows) - 1)
+            choice2 = None
+            while choice2 != None and choice2 == choice1:
+                choice2 = random.randint(0, len(violating_rows) - 1)
+
+            temp_row = violating_rows[choice1]
+            violating_rows[choice1] = violating_rows[choice2]
+            violating_rows[choice2] = temp_row
+
+            return {
+                "status": True,
+                "room1": violating_rows[choice2],
+                "room2": violating_rows[choice1]
+            }
+        else:
+            return {
+                "status": False,
+                "room1": None,
+                "room2": None
+            }
+
+    def oneRowSwap(self):
+        violating_rows = self.findRowViolations()
+        all_rows = self.findAllRows()
+        if len(violating_rows) >= 1 and len(all_rows) >= 1: #can do
+            self.seed = self.seed + 1
+            random.seed(self.seed)
+            choice1 = random.randint(0, len(violating_rows) - 1)
+            choice2 = None
+            while choice2 != None and choice2 == choice1:
+                choice2 = random.randint(0, len(all_rows) - 1)
+
+            temp_row = violating_rows[choice1]
+            violating_rows[choice1] = all_rows[choice2]
+            all_rows[choice2] = temp_row
+
+            return {
+                "status": True,
+                "room1": all_rows[choice2],
+                "room2": violating_rows[choice1]
+            }
+        else:
+            return {
+                "status": False,
+                "room1": None,
+                "room2": None
+            }
+
+    def findRowViolations(self):
+        violations = []
+        for day in range(0, self.timetable.days):
+            num_violations = self.checkHardConstraintsRow(day)
+            if num_violations > 0:
+                violations.append(self.timetable.days[day])
+        return violations
+
+    def findAllRows(self):
+        rows = []
+        for day in range(0, self.timetable.days):
+            
+            rows.append(self.timetable.days[day])
+        return rows
+
+    def twoViolationMutation(self):
+        violating_rooms = self.findViolatingCourse()
+        if len(violating_rooms) >= 2: #can do this
+            self.seed = self.seed + 1
+            random.seed(self.seed)
+            choice1 = random.randint(0, len(violating_rooms) - 1)
+            choice2 = None
+            while choice2 != None and choice2 == choice1:
+                choice2 = random.randint(0, len(violating_rooms) - 1)
+            
+            temp_room = violating_rooms[choice1]
+            violating_rooms[choice1] = violating_rooms[choice2]
+            violating_rooms[choice2] = temp_room
+            return {
+                "status": True,
+                "room1": violating_rooms[choice2],
+                "room2": violating_rooms[choice1]
+            }
+        else:
+            return {
+                "status": False,
+                "room1": None,
+                "room2": None
+            } #could not do this
+
+    def oneViolationMutation(self):
+        violating_rooms = self.findViolatingCourse()
+        if len(violating_rooms) >= 1: #can do this
+            self.seed = self.seed + 1
+            random.seed(self.seed)
+            choice1 = random.randint(0, len(violating_rooms) - 1)
+            all_rooms = self.getAllRooms()
+            choice2 = None
+            while choice2 != None and choice2 == choice1:
+                choice2 = random.randint(0, len(violating_rooms) - 1)
+            temp_room = violating_rooms[choice1]
+            violating_rooms[choice1] = all_rooms[choice2]
+            all_rooms[choice2] = temp_room
+            return {
+                "status": True,
+                "room1": all_rooms[choice2],
+                "room2": violating_rooms[choice1]
+            }
+        else:
+            return {
+                "status": False,
+                "room1": None,
+                "room2": None
+            } #could not do this
+
+    def randomRoomSwap(self):
+        all_rooms = self.getAllRooms()
+        self.seed = self.seed + 1
+        if len(all_rooms) > 1:
+            random.seed(self.seed)
+            choice1 = random.randint(0, len(all_rooms) - 1)
+            all_rooms = self.getAllRooms()
+            choice2 = None
+            while choice2 != None and choice2 == choice1:
+                choice2 = random.randint(0, len(all_rooms) - 1)
+            temp_room = all_rooms[choice1]
+            all_rooms[choice1] = all_rooms[choice2]
+            all_rooms[choice2] = temp_room
+            
+            return {
+                "status": True,
+                "room1": all_rooms[choice2],
+                "room2": all_rooms[choice1]
+            }
+        else:
+            return {
+                "status": False,
+                "room1": None,
+                "room2": None
+            }
+
+    def getAllRooms(self):
+        rooms = []
+        for day in range(0, len(self.timetable.days)):
+            for period in range(0, len(self.timetable.days[day])):
+                for room in range(0, len(self.timetable.days[day][period])):
+                    rooms.append(self.timetable.days[day][period][room])
+        return rooms
+
+    def findViolatingCourse(self):
+        violating_rooms = []
+        for day in range(0, len(self.timetable.days)):
+            for period in range(0, len(self.timetable.days[day])):
+                for room in range(0, len(self.timetable.days[day][period])):
+                    course = self.findCourseByID(self.timetable.days[day][period][room]['slot']['CourseID'])
+                    if course != None:
+                        valid = self.checkHardConstraintCourseForPeriod(course, self.timetable.days[day][period])
+                        if valid == False:
+                            violating_rooms.append(self.timetable.days[day][period][room])
+
+        return violating_rooms
 
 
 class Timetable:
