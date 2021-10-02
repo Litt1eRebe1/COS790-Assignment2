@@ -26,6 +26,8 @@ class Population:
         self.createPopulation()
         self.createPerturbativeHeuristics()
         self.createPerturbativeHeuristicPopulation()
+
+
         
     def createPerturbativeHeuristics(self):
         new_node = Node(True, "Two violation mutation", 0, 'perturbative')
@@ -46,6 +48,10 @@ class Population:
     def createPerturbativeHeuristicPopulation(self):
         for num in range(0, self.num_perturbative):
             heuristic = []
+            total_heuristic = {
+                "list": [],
+                "fitness": 0
+            }
             length = random.randint(0, self.perturbative_max_length - 1)
             for i in range(0, length):
                 self.seed = self.seed + 1
@@ -62,26 +68,142 @@ class Population:
                     heuristic.append(self.perturbativeHeuristics[3].copy())
                 else:
                     heuristic.append(self.perturbativeHeuristics[4].copy())
-            self.perturbative_heuristic.append(heuristic)
+            total_heuristic['list'] = heuristic
+            self.perturbative_heuristic.append(total_heuristic)
         
+    def showAllPerturbativeHeuristics(self):
+        print(" ==== showAllPerturbativeHeuristics ==== ")
+        for i in range(0, len(self.perturbative_heuristic)):
+            self.showPerturbativeHeuristic(i)
 
     def showPerturbativeHeuristic(self, index):
         show_list = []
-        for node in self.perturbative_heuristic[index]:
+        for node in self.perturbative_heuristic[index]['list']:
             show_list.append(node.description)
-        print("HEURISTIC")
+        
+        print(" showPerturbativeHeuristic --- ")
         print(show_list)
 
-    def mutatePerturbativeHeuristic(self):
-        pass
+    def applyPerturbativeHeuristics(self):
+        for h in self.perturbative_heuristic:
+            for s in self.individuals:
+                s.applyPerturbativeHeuristics(h['list'])
+
+    def evolvePerturbativeHeuristic(self):
+        count = 0
+        temp_heuristics = []
+        while count < len(self.perturbative_heuristic):
+            self.seed = self.seed + 1
+            random.seed(self.seed)
+            choice = random.randint(0, 100)
+            if choice < 55:
+                kids = self.crossOverPerturbativeHeuristic()
+            elif choice < 66:
+                kids = self.mutatePerturbativeHeuristic(0)
+            elif choice < 78:
+                kids = self.mutatePerturbativeHeuristic(1)
+            elif choice < 89:
+                kids = self.mutatePerturbativeHeuristic(2)
+            else:
+                kids = self.reproducePerturbativeHeuristic()
+
+            for k in kids:
+                count = count + 1
+                temp_heuristics.append(k)
+        self.perturbative_heuristic = temp_heuristics
+        
+    def reproducePerturbativeHeuristic(self):
+        heuristic = self.selectPerturbativeHeuristics()
+        return [self.copyHeuristic(heuristic)]
+      
+    def mutatePerturbativeHeuristic(self, type):
+        heuristic = self.selectPerturbativeHeuristics()
+        if type == 0: # add heursitc to current heauristc
+            choice = random.randint(0, 4)
+            heuristic['list'].append(self.perturbativeHeuristics[choice])
+        elif type == 1: # remove heuristc
+            if len(heuristic['list']) > 0:
+                heuristic['list'].pop()
+        else: # change to new heuristic
+            choice = random.randint(0, 4)
+            random_index = random.randint(0, len(heuristic['list']) - 1)
+            heuristic['list'][random_index] = self.perturbativeHeuristics[choice]
+
+        return [heuristic]
 
     def crossOverPerturbativeHeuristic(self):
-        pass
-    
+        parent1 = self.selectPerturbativeHeuristics()
+        parent2 = self.selectPerturbativeHeuristics()
+        self.seed = self.seed + 1
+        random.seed(self.seed)
+
+        if len(parent1['list']) > len(parent2['list']): #find cross point that will work for both
+            choice = random.randint(0, len(parent2['list']) - 1)
+            length = len(parent1['list'])
+        else:
+            choice = random.randint(0, len(parent1['list']) - 1)
+            length = len(parent2['list'])
+        length_parent1 = len(parent1['list'])
+        length_parent2 = len(parent2['list'])
+        
+        for i in range(choice, length):
+           
+            if i < length_parent1 and i < length_parent2:
+                temp = parent1['list'][i].copy()
+                parent1['list'][i] = parent2['list'][i].copy()
+                parent2['list'][i] = temp
+            elif i < length_parent1:
+                temp = parent1['list'][i].copy()
+                parent2['list'].append(temp)
+            else:
+                temp = parent2['list'][i].copy()
+                parent2['list'].append(temp)
+        if length_parent2 > length_parent1:
+            for i in range(0, length_parent2 - length_parent1):
+                del parent2['list'][-1]
+
+        if length_parent1 > length_parent2:
+            for i in range(0, length_parent1 - length_parent2):
+                del parent1['list'][-1]
+
+        return [parent1, parent2]
+
+    def selectPerturbativeHeuristics(self):
+        heuristic_pool = []
+        
+        for i in range(self.tournament_size):
+            self.seed = self.seed + 1
+            random.seed(self.seed)
+            choice = random.randint(0, len(self.perturbative_heuristic) - 1)
+            heuristic_pool.append(self.perturbative_heuristic[choice])
+
+        heuristic_pool.sort(key=lambda x: x['fitness'], reverse=False)
+        
+        return self.copyHeuristic(heuristic_pool[0])
+
+    def copyHeuristic(self, heuristic):
+        copy = {
+            "list": [],
+            "fitness": 0
+        }
+        for i in range(0, len(heuristic['list'])):
+            copy['list'].append(heuristic['list'][i].copy())
+        copy['fitness'] = heuristic['fitness']
+
+        return copy
+    def checkGeneration(self, perc):
+        
+        num_acceptable = int(perc * len(self.individuals))
+        for i in self.individuals:
+            if i.fitness == 0:  
+                num_acceptable = num_acceptable - 1
+
+        return num_acceptable <= 0
 
     def nextGeneration(self):
         self.evaluatePopulation()
-        self.applyOperators()
+        self.individuals = self.applyOperators()
+        
 
     def tournamentSelection(self):
         # print("-......... tournamet START ..........")
@@ -92,29 +214,38 @@ class Population:
             choice = random.randint(0, len(self.individuals) - 1)
            
             tournament_pool.append(self.individuals[choice].copy())
-        tournament_pool.sort(key=lambda x: x.fitness, reverse=True)
+        tournament_pool.sort(key=lambda x: x.fitness, reverse=False)
         # print("-......... tournamet END ..........")
         return tournament_pool[0]
 
     def applyOperators(self):
-        self.seed = self.seed + 1
-        random.seed(self.seed)
-        choice = random.randint(0, 100)
-        if choice <= 80:
-            self.crossover()
-        else:
-            self.mutate()
-
+        i = 0
+        new_population = []
+        while i < len(self.individuals):
+            self.seed = self.seed + 1
+            random.seed(self.seed)
+            choice = random.randint(0, 100)
+            if choice <= 80:
+                kids = self.crossover()
+                i = i + 2
+            else:
+                kids = self.mutate()
+                i = i + 1
+            for k in range(0, len(kids)):
+                new_population.append(kids[k])
+        
+        return new_population
     def crossover(self):
-        print("---------------CROOSSS START --------------->")
         parent1 = self.tournamentSelection()
         parent2 = self.tournamentSelection()
 
         parent1.crossover(parent2)
-        print("--------------- --------------- CROOSSS END --------------->")
+        return [parent1, parent2]
 
-    def mutate(self):
-        pass
+    def mutate(self):  
+        parent = self.tournamentSelection()
+        parent.mutate()
+        return [parent]
 
     def evaluatePopulation(self):
         for i in self.individuals:
@@ -134,6 +265,8 @@ class Population:
             new_individual = Chromosome(self.seed, self.max_depth, self.max_depth - i + 2, self.problems, self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day, self.perturbative_max_length, 0)
             # new_individual.showTree()
             self.individuals.append(new_individual)
+
+        self.evaluatePopulation()
 
 class Chromosome:
     def __init__(self, seed, max_depth, depth, problems, rooms, courses, days, curricula, num_rooms, periods_per_day, perturbative_max_length = 10, choice = 0, copy = False, tree = None):
@@ -163,20 +296,26 @@ class Chromosome:
     def evaluate(self):
         self.evaluator.evaluate(self.tree)
         self.fitness = self.evaluator.calculateFitness()
-        print("fitness: " + str(self.fitness))
+
+    def applyPerturbativeHeuristics(self, heuristic):
+        soft = self.evaluator.applyPerturbativeHeuristics(heuristic)
+        return soft
 
     def createTree(self, choice = 0):
         if choice == 0:
             # print("full")
-            self.tree = Tree(self.seed)
+            self.tree = Tree(self.seed, self.max_depth)
             self.tree.createFull()
         else:
             # print("grow")
-            self.tree = Tree(self.seed)
+            self.tree = Tree(self.seed, self.max_depth)
             self.tree.createGrow()
             
     def crossover(self, parent2):
         self.tree.crossover(parent2)
+
+    def mutate(self):
+        self.tree.mutate()
             
     def showTree(self):
         print("\n")
@@ -262,12 +401,10 @@ class Tree:
             new_tree.functional_set.append(node.copy())
 
         new_tree.root = self.root.copy()
-        # implement proper copy @TODO
-        new_tree.depth = 0
+
+        new_tree.depth = self.depth
         new_tree.max_depth = self.max_depth
         new_tree.root = self.copyHelper(self.root)
-        # print('\n\n TREE CHILDREN')
-        # print(new_tree.root.children)
         return new_tree
 
     def copyHelper(self, node):
@@ -293,9 +430,11 @@ class Tree:
     def createGrow(self):
         self.root = self.grow()
 
+
     def full(self, level = 0, type = 0):
+     
         if level == self.max_depth: #end here
-            self.depth = level
+            self.depth = self.max_depth
             if type == 0:
                 return self.returnTerminalNode()
             else:
@@ -323,18 +462,20 @@ class Tree:
                 functional_node.children.append(self.full(level + 1, 0))
                 functional_node.children.append(self.full(level + 1, 1))
             functional_node.num_children = num_children
+            self.depth = self.max_depth
             return functional_node
 
     
     def grow(self, level = 0, type = 0):
         if level == self.max_depth: #end here
-            self.depth = level
+            self.depth = self.max_depth
             if type == 0:
                 return self.returnTerminalNode()
             else:
                 return self.returnTerminalNode(1)
         elif level == 0: #root
-            self.root = self.full(level + 1)
+            self.depth = 0
+            self.root = self.grow(level + 1)
             return self.root
         else:
             # create funtional node
@@ -343,12 +484,13 @@ class Tree:
                 node = self.returnFuntionalNode()
                 num_children = 2 if node.num_children == 2 else random.randint(2, 3)
                 node.num_children = num_children
+               
                 if node.id == 0:
                     for i in range(0, num_children):
-                        node.children.append(self.full(level + 1))
+                        node.children.append(self.grow(level + 1))
                 else:
-                    node.children.append(self.full(level + 1, 0))
-                    node.children.append(self.full(level + 1, 1))
+                    node.children.append(self.grow(level + 1, 0))
+                    node.children.append(self.grow(level + 1, 1))
             else:
                 if level > self.depth:
                     self.depth = level
@@ -362,7 +504,7 @@ class Tree:
             pass
         elif level == 0:
             # at root
-            print(self.root.description)  
+            print(node.description)  
                
             for i in range(0, len(node.children)):
                 self.showTree(node.children[i], level + 1)
@@ -404,11 +546,78 @@ class Tree:
         # parent2.showTree()
 
     def mutate(self):
-        point = self.findCrossoverPoint()
+        found = False
+        self.seed = self.seed + 1
+        random.seed(self.seed)
+        place = random.randint(1, self.depth)
+        level = 0
+        node = self.root
+        while found == False:
+          
+            if level == self.depth:
+                point = node
+                found = True
+            elif level == place:
+                if node.terminal == False:
+                    choice = random.randint(0, len(node.children) - 1)
+                    point = node.children[choice]
+                    found = True
+                else:
+                    point = node
+                    found = True
+            elif node.terminal == False:
+                choice = random.randint(0, len(node.children) - 1)
+                node = node.children[choice]
+            else:
+                point = node
+                found = True
+            level = level + 1
+    
+       
+        grow_node = self.mutateHelper(point.copy(), 3)
+        point.description = grow_node.description
+        point.id = grow_node.id
+        point.children = []
+        for child in grow_node.children:
+            point.children.append(child.copy())
+        point.terminal = grow_node.terminal
+        point.level = grow_node.level
+        point.num_children = grow_node.num_children
 
-    def mutateHelper(self, node, level = 0):
-        if level > self.max_depth:
-            pass
+    
+        
+
+    def mutateHelper(self, node, level):
+        self.seed = self.seed + 1
+        random.seed(self.seed)
+        if level == self.max_depth: #end here
+            if type == 0:
+                return self.returnTerminalNode()
+            else:
+                return self.returnTerminalNode(1)
+        elif level == 0: #root
+            node = self.full(level + 1)
+            return node
+        else:
+            # create funtional node
+            choice = random.randint(0, 1)
+            if choice == 0: #grow
+                node = self.returnFuntionalNode()
+                num_children = 2 if node.num_children == 2 else random.randint(2, 3)
+                node.num_children = num_children
+                if node.id == 0:
+                    for i in range(0, num_children):
+                        node.children.append(self.full(level + 1))
+                else:
+                    node.children.append(self.full(level + 1, 0))
+                    node.children.append(self.full(level + 1, 1))
+            else:
+                if level > self.depth:
+                    self.depth = level
+                node = self.returnTerminalNode()
+
+            return node
+
 
     def findCrossoverPoint(self, type = -1):
         
@@ -417,8 +626,8 @@ class Tree:
         return point
 
     def findMutatePoint(self):
-        place = random.randint(0, self.depth)
-        point = self.findMutatePointHelper(self.root, place)["node"]
+        place = random.randint(1, self.depth)
+        point = self.findMutatePointHelper(self.root, place)
         return point
 
     def findMutatePointHelper(self, node, depth, level = 0):
@@ -428,31 +637,39 @@ class Tree:
                 "level": level
             }
         else:
-            place = random.randint(0, node.num_children - 1)
-            if node.children[place].terminal == False:
-                return self.findMutatePointHelper(node.children[place], depth, level + 1)
+            if node.terminal == False:
+                place = random.randint(0, len(node.children) - 1)
+                if node.children[place].terminal == False:
+                    return self.findMutatePointHelper(node.children[place], depth, level + 1)
+                else:
+                    return {
+                    "node": node,
+                    "level": level
+                }
             else:
                 return {
-                "node": node,
-                "level": level
-            }
+                    "node": node,
+                    "level": level
+                } 
 
     def findCrossPointHelper(self, node, depth, type = -1, level = 0):
         if type == -1:
             if level == depth: #end
                 return node
             else:
-                place = random.randint(0, node.num_children - 1)
-                if node.children[place].terminal == False:
-                    return self.findCrossPointHelper(node.children[place], depth, type, level + 1)
+                if node.terminal == False:
+                    place = random.randint(0, len(node.children) - 1)
+                    if node.children[place].terminal == False:
+                        return self.findCrossPointHelper(node.children[place], depth, type, level + 1)
+                    else:
+                        return node
                 else:
-                    return node
+                        return node
         else:
             if node.id == type:
                 return node
 
-            node = None
-            for i in range(0, node.num_children):
+            for i in range(0, len(node.children)):
                 if node.children[i].terminal == False:
                     node = self.findCrossPointHelper(node.children[i], depth, type, level + 1)
                 if node != None:

@@ -3,7 +3,7 @@ import random
 # represents a construction heuristic and combines the problem
 # characteristics together with a period selection heuristic. 
 class Evaluator:
-    def __init__(self, seed, problems, rooms, courses, days, curricula, num_roooms, periods_per_day):
+    def __init__(self, seed, problems, rooms, courses, days, curricula, num_roooms, periods_per_day, timetable = None):
         self.problems = problems
         self.rooms = rooms
         self.courses = courses
@@ -13,53 +13,23 @@ class Evaluator:
         self.seed = seed
         random.seed(seed)
         self.copy_courses = self.courses.copy()
-        self.timetable = Timetable(periods_per_day, days, self.num_rooms, self.rooms)
+        self.periods_per_day = periods_per_day
+        if timetable == None:
+            self.timetable = Timetable(periods_per_day, days, self.num_rooms, self.rooms)
+        else:
+            self.timetable = timetable.copy()
 
-        # self.evaluateRandomPeriod(self.courses[0]) # works so far
-        # self.evaluateFirstPeriod(self.courses[1])
-        # self.evaluateFirstPeriod(self.courses[2])
-        # self.evaluateFirstPeriod(self.courses[3])
-        # self.evaluateFirstPeriod(self.courses[4])
-
-        # self.evaluateRandomPeriod(self.courses[0]) # works so far
-        # self.evaluateRandomPeriod(self.courses[1])
-        # self.evaluateRandomPeriod(self.courses[2])
-        # self.evaluateRandomPeriod(self.courses[3])
-        # self.evaluateRandomPeriod(self.courses[4])
-
-
-        # self.evaluateMinimumPenaltyPeriod(self.courses[0]) # works so far
-        # self.evaluateMinimumPenaltyPeriod(self.courses[1])
-        # self.evaluateMinimumPenaltyPeriod(self.courses[2])
-        # self.evaluateMinimumPenaltyPeriod(self.courses[3])
-        # self.evaluateMinimumPenaltyPeriod(self.courses[4])
-        # self.evaluateMinimumPenaltyPeriod(self.courses[5])
-        # self.timetable.print()
-
-      
+    def copy(self):
+        new_eval = Evaluator(self.seed, self.problems, self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day, self.timetable)
+        return new_eval
 
     def evaluate(self, tree):
         count = 0
-        # print('\n')
-        # print('\n')
-        # print('\n')
-        # print('\n')
-        # print('\n')
-        # print('\n')
-        # print('\n')
-        # print('\n')
-        # print('\n')
-        # print('\n')
-        # print('\n')
-        # print('\n')
-        # print('\n')
-        # print("num courses: " + str(len(self.courses)))
         while count < 1000 and self.allScheduled() == False:
             self.evaluateHelper(tree.root)
             count = count + 1
 
-            
-        # self.timetable.print()
+
 
     
     def allScheduled(self):
@@ -267,12 +237,12 @@ class Evaluator:
                                         self.timetable.days[day][period][room] = self.removeExam(self.timetable.days[day][period][room])
                                         
                                     else:
-                                        # print("++++ SCHEDULED +++ : " + str(len(self.courses)))
+                                    
                                         scheduled = True
                                         return True #it has been scheduled
                     if scheduled == False:
                         self.addCourse(course)
-                        # print("--- not scheduled ---- : " + str(len(self.courses)))
+                     
                 else:
                     return True
             return scheduled
@@ -399,11 +369,11 @@ class Evaluator:
 
     def checkHardConstraintCourseForPeriod(self, course, period):
         num_to_be_scheduled = course['Lectures'] - self.numLectureScheduled(course['CourseID'])
-        # print('num_to_be_scheduled  ' + str(num_to_be_scheduled))
+
         clashes = self.checkConflictsTimetableCourse(course)
-        # print('clashes  ' + str(clashes))
+   
         teacher_available = self.checkAvailabilityInPeriod(course['Teacher'], period)
-        # print('teacher_available  ' + str(teacher_available))
+      
         
         if num_to_be_scheduled >= 0 and clashes[0]['num_clashes'] == 0 and teacher_available == True:
             return True
@@ -686,8 +656,16 @@ class Evaluator:
             if s['CourseID'] == courseID:
                 return s['Lectures']
 
+    def applyPerturbativeHeuristics(self, heuristic):
+        copy_eval = self.copy()
+        for h in heuristic:
+            copy_eval.applyPerturbativeHeuristicsHelper(h)
+
+        soft = copy_eval.checkSoftConstraintsAll()
+        print("soft constraints: " + str(soft))
+        return soft
     
-    def applyPerturbativeHeuristics(self, node):
+    def applyPerturbativeHeuristicsHelper(self, node):
         #  Two violation mutation - Two cells in the matrix causing constraint violations are
         # identified, and the contents of the cells are swapped.
         if node.id == 0:
@@ -762,7 +740,7 @@ class Evaluator:
 
     def findRowViolations(self):
         violations = []
-        for day in range(0, self.timetable.days):
+        for day in range(0, len(self.timetable.days)):
             num_violations = self.checkHardConstraintsRow(day)
             if num_violations > 0:
                 violations.append(self.timetable.days[day])
@@ -770,7 +748,7 @@ class Evaluator:
 
     def findAllRows(self):
         rows = []
-        for day in range(0, self.timetable.days):
+        for day in range(0, len(self.timetable.days)):
             
             rows.append(self.timetable.days[day])
         return rows
@@ -832,9 +810,10 @@ class Evaluator:
             random.seed(self.seed)
             choice1 = random.randint(0, len(all_rooms) - 1)
             all_rooms = self.getAllRooms()
-            choice2 = None
-            while choice2 != None and choice2 == choice1:
+            choice2 = random.randint(0, len(all_rooms) - 1)
+            while choice2 == choice1:
                 choice2 = random.randint(0, len(all_rooms) - 1)
+
             temp_room = all_rooms[choice1]
             all_rooms[choice1] = all_rooms[choice2]
             all_rooms[choice2] = temp_room
@@ -876,6 +855,7 @@ class Evaluator:
 class Timetable:
     def __init__(self, num_classes, num_days, num_rooms, rooms):
         self.num_classes = num_classes
+        self.num_rooms = num_rooms
         self.num_days = num_days
         self.rooms = rooms
         self.days = []
@@ -921,7 +901,7 @@ class Timetable:
                 for room in slot:
                     rooms.append({
                         "name": room['name'],
-                        "capacity": room['occupancy'],
+                        "capacity": room['capacity'],
                         "slot" : {
                             "CourseID": room['slot']['CourseID'],
                             "Teacher": room['slot']['Teacher'] 
