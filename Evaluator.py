@@ -24,14 +24,15 @@ class Evaluator:
         return new_eval
 
     def evaluate(self, tree):
+        
+        self.courses = self.copy_courses.copy()
         count = 0
+        self.timetable = Timetable(self.periods_per_day, self.days, self.num_rooms, self.rooms)
         while count < 1000 and self.allScheduled() == False:
             self.evaluateHelper(tree.root)
             count = count + 1
-
-
-
-    
+        
+        
     def allScheduled(self):
         return len(self.courses) == 0
 
@@ -305,19 +306,19 @@ class Evaluator:
         course = self.getCourse()
         if course != None:
             availble_rooms = self.getFeasibleRooms(course)
-            
-            soft_constraint = self.checkSoftConstraints(course, availble_rooms[0])
-            softest_room = {
-                "room" : availble_rooms[0],
-                "soft_score": soft_constraint
-            }
-            for room in range(1, len(availble_rooms)):
-                soft_constraint = self.checkSoftConstraints(course, availble_rooms[room])
-                if soft_constraint < softest_room['soft_score']:
-                    softest_room['room'] = availble_rooms[room]
-                    softest_room['soft_score'] = soft_constraint
-                    
-            softest_room['room'] = self.scheduleExam(course, softest_room['room'])
+            if len(availble_rooms) > 0:
+                soft_constraint = self.checkSoftConstraints(course, availble_rooms[0])
+                softest_room = {
+                    "room" : availble_rooms[0],
+                    "soft_score": soft_constraint
+                }
+                for room in range(1, len(availble_rooms)):
+                    soft_constraint = self.checkSoftConstraints(course, availble_rooms[room])
+                    if soft_constraint < softest_room['soft_score']:
+                        softest_room['room'] = availble_rooms[room]
+                        softest_room['soft_score'] = soft_constraint
+                        
+                softest_room['room'] = self.scheduleExam(course, softest_room['room'])
 
 
     def evaluateCombineCharacteristicPeriod(self):
@@ -328,22 +329,34 @@ class Evaluator:
 
     def calculateFitness(self):
         hard_constraints = self.checkHardConstraints() # check fotness
-        soft_constraints = self.checkSoftConstraintsAll() 
+ 
+        return hard_constraints
 
-        return hard_constraints + soft_constraints
-
-    def checkHardConstraints(self):
+    def checkHardConstraints(self): #@todo
+        num_missing_lectures = len(self.copy_courses)
+        
+        teachers_unavailable = 0
         num_violations = 0
         for day in self.timetable.days:
             for periods in day:
                 for rooms in periods:
                     if rooms['slot']['CourseID'] != None:
+                        num_missing_lectures = num_missing_lectures - 1
                         course = self.findCourseByID(rooms['slot']['CourseID'])
-                        violates = self.checkHardConstraintCourseForPeriod(course, periods)
-                        if violates == True:
+                        valid = self.checkHardConstraintCourseForPeriod(course, periods)
+                        if valid == False:
                             num_violations = num_violations + 1
+        for day in self.timetable.days:
+            for period in day:
+                for room in period:
+                    if room['slot']['Teacher'] != None:
+                        teacher_available = self.checkAvailabilityInPeriod(room['slot']['Teacher'], period)
+                        if teacher_available == False:
+                            teachers_unavailable = teachers_unavailable + 1
 
-        return num_violations
+        num_rooms_biggers = len(self.checkRoomCapacity())
+        
+        return num_violations + num_missing_lectures + teachers_unavailable + num_rooms_biggers
 
     def checkHardConstraintsRow(self, day):
         num_violations = 0
@@ -478,10 +491,10 @@ class Evaluator:
         return count
 
     def checkSoftConstraints(self, course, room):
-        room_capacity = self.checkRoomCapacityPerRoom(course, room)
+        room_capacity_over = self.checkRoomCapacityPerRoom(course, room)
         course_working_days =  self.checkWorkingDaysPerRoom(course, room)
         room = self.scheduleExam(course, room)
-        num_rooms_used = self.calculateRoomStabilityPerCourse(course) - 1
+        num_rooms_used = self.calculateRoomStabilityPerCourse(course)
 
         room = self.removeExam(room)
 
@@ -489,10 +502,8 @@ class Evaluator:
 
         constraint_cost = course_working_days
         constraint_cost = constraint_cost + num_rooms_used
-        if room_capacity == False:
-            constraint_cost = constraint_cost * 1.5
-        else:
-            constraint_cost = constraint_cost * 1
+        if room_capacity_over == True:
+            constraint_cost = constraint_cost + 1
         
 
         return constraint_cost
@@ -504,18 +515,16 @@ class Evaluator:
                 for room in period:
                     course_check = self.findCourseByID(room['slot']['CourseID'])
                     if course_check != None:
-                        room_capacity = self.checkRoomCapacityPerRoom(course_check, room)
+                        room_capacity_over = self.checkRoomCapacityPerRoom(course_check, room)
                         course_working_days =  self.checkWorkingDaysPerRoom(course_check, room)
-                        num_rooms_used = self.calculateRoomStabilityPerCourse(course_check) - 1
-
+                        num_rooms_used = self.calculateRoomStabilityPerCourse(course_check)
+            
                         constraint_cost = course_working_days
                         constraint_cost = constraint_cost + num_rooms_used
-                        if room_capacity == False:
-                            constraint_cost = constraint_cost * 1.5
-                        else:
-                            constraint_cost = constraint_cost * 1
+                        if room_capacity_over == True:
+                            constraint_cost = constraint_cost + 1
+                        
                         total_constraint_cost = total_constraint_cost + constraint_cost
-        
         return total_constraint_cost
 
     def checkRoomCapacityPerRoom(self, course, room):
@@ -528,6 +537,8 @@ class Evaluator:
                 for s in d[i]:
                     if s['slot']['CourseID'] != None:
                         num_students = self.getNumStudentInCourse(s['slot']['CourseID'])
+                        
+
                         if num_students > s['capacity']:
                             over = {
                                 "CourseID": s['slot']['CourseID'],
@@ -606,14 +617,11 @@ class Evaluator:
             for slot in day:
                 for room in slot:
                     if room['slot']['CourseID'] == course['CourseID']:
-                        rooms_used.append(room['name'])
-                  
-        mismatches = []
-        for room in rooms_used:
-            if room not in mismatches:
-                mismatches.append(room)
+                        if room['name'] not in rooms_used:
+                            rooms_used.append(room['name'])
 
-        return len(mismatches)
+       
+        return len(rooms_used) - 1
 
     def coursesInRooms(self, room):
         for day in self.timetable.days:
@@ -652,17 +660,26 @@ class Evaluator:
 
     
     def getNumStudentInCourse(self, courseID):
-        for s in self.courses:
+        for s in self.copy_courses:
             if s['CourseID'] == courseID:
                 return s['Lectures']
 
     def applyPerturbativeHeuristics(self, heuristic):
         copy_eval = self.copy()
+
         for h in heuristic:
             copy_eval.applyPerturbativeHeuristicsHelper(h)
-
+  
         soft = copy_eval.checkSoftConstraintsAll()
-        print("soft constraints: " + str(soft))
+       
+        return soft
+
+    def actuallyApplyPerturbativeHeuristics(self, heuristic):
+        for h in heuristic:
+            self.applyPerturbativeHeuristicsHelper(h)
+    
+        soft = self.checkSoftConstraintsAll()
+       
         return soft
     
     def applyPerturbativeHeuristicsHelper(self, node):
@@ -691,8 +708,8 @@ class Evaluator:
             self.seed = self.seed + 1
             random.seed(self.seed)
             choice1 = random.randint(0, len(violating_rows) - 1)
-            choice2 = None
-            while choice2 != None and choice2 == choice1:
+            choice2 = random.randint(0, len(violating_rows) - 1)
+            while choice2 == choice1:
                 choice2 = random.randint(0, len(violating_rows) - 1)
 
             temp_row = violating_rows[choice1]
@@ -718,8 +735,8 @@ class Evaluator:
             self.seed = self.seed + 1
             random.seed(self.seed)
             choice1 = random.randint(0, len(violating_rows) - 1)
-            choice2 = None
-            while choice2 != None and choice2 == choice1:
+            choice2 = random.randint(0, len(all_rows) - 1)
+            while choice2 == choice1:
                 choice2 = random.randint(0, len(all_rows) - 1)
 
             temp_row = violating_rows[choice1]
@@ -851,6 +868,8 @@ class Evaluator:
 
         return violating_rooms
 
+    def print(self):
+        self.timetable.print()
 
 class Timetable:
     def __init__(self, num_classes, num_days, num_rooms, rooms):
@@ -891,6 +910,7 @@ class Timetable:
                     print(room)
 
     def copy(self):
+        
         new_timetable = Timetable(self.num_classes, self.num_days, self.num_rooms, self.rooms)
         new_timetable.days = []
 

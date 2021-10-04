@@ -19,7 +19,7 @@ class Population:
         self.num_perturbative = num_perturbative
         self.tournament_size = tournament_size
         self.perturbative_max_length = perturbative_max_length
-       
+        
         self.perturbativeHeuristics = []
         self.perturbative_heuristic = []
 
@@ -28,7 +28,16 @@ class Population:
         self.createPerturbativeHeuristicPopulation()
 
 
-        
+    def print(self):
+        count = 1
+        for i in self.individuals:
+            
+            i.evaluator.print()
+            print(" ================================================== + " + str(count) + " -- fitness  " + str(i.fitness) + " -- quality  " + str(i.quality) + " ================================================== + ")
+            count = count + 1
+            
+
+
     def createPerturbativeHeuristics(self):
         new_node = Node(True, "Two violation mutation", 0, 'perturbative')
         self.perturbativeHeuristics.append(new_node)
@@ -85,9 +94,35 @@ class Population:
         print(show_list)
 
     def applyPerturbativeHeuristics(self):
+        for h in range(0, len(self.perturbative_heuristic)):
+            fitness = 0
+            for s in range(0, len(self.individuals)):
+                old_quality = int(self.individuals[s].quality)
+         
+                self.individuals[s].quality = self.individuals[s].applyPerturbativeHeuristics(self.perturbative_heuristic[h]['list'])
+                fitness = fitness + (old_quality - self.individuals[s].quality )
+               
+            self.perturbative_heuristic[h]['fitness'] = fitness
+
+    def hillClimb(self):
+        for h in range(0, len(self.perturbative_heuristic)):
+            fitness = 0
+            steps = 0
+            improvement = True
+            while improvement == True and steps < 20:
+                for s in range(0, len(self.individuals)):
+                    old_quality = int(self.individuals[s].quality)
+                    self.individuals[s].quality = self.individuals[s].applyPerturbativeHeuristics(self.perturbative_heuristic[h]['list'])
+                    fitness = fitness + (old_quality - self.individuals[s].quality )
+                improvement = True if fitness > self.perturbative_heuristic[h]['fitness'] else False
+                if improvement == True:
+                    for s in range(0, len(self.individuals)):
+                        self.individuals[s].quality = self.individuals[s].actuallyApplyPerturbativeHeuristics(self.perturbative_heuristic[h]['list'])
+                self.perturbative_heuristic[h]['fitness'] = fitness
+                steps = steps + 1
+        print(len(self.perturbative_heuristic))
         for h in self.perturbative_heuristic:
-            for s in self.individuals:
-                s.applyPerturbativeHeuristics(h['list'])
+            print("hill climb fitness: " + str(h['fitness']))
 
     def evolvePerturbativeHeuristic(self):
         count = 0
@@ -115,6 +150,9 @@ class Population:
     def reproducePerturbativeHeuristic(self):
         heuristic = self.selectPerturbativeHeuristics()
         return [self.copyHeuristic(heuristic)]
+
+    def hillClimb(self):
+        pass
       
     def mutatePerturbativeHeuristic(self, type):
         heuristic = self.selectPerturbativeHeuristics()
@@ -195,18 +233,23 @@ class Population:
         
         num_acceptable = int(perc * len(self.individuals))
         for i in self.individuals:
+            
             if i.fitness == 0:  
                 num_acceptable = num_acceptable - 1
-
+        
         return num_acceptable <= 0
 
     def nextGeneration(self):
         self.evaluatePopulation()
         self.individuals = self.applyOperators()
+        self.evaluatePopulation()
+        
+       
+        
+        
         
 
     def tournamentSelection(self):
-        # print("-......... tournamet START ..........")
         tournament_pool = []
         for i in range(0, self.tournament_size):
             self.seed = self.seed + 1
@@ -215,7 +258,6 @@ class Population:
            
             tournament_pool.append(self.individuals[choice].copy())
         tournament_pool.sort(key=lambda x: x.fitness, reverse=False)
-        # print("-......... tournamet END ..........")
         return tournament_pool[0]
 
     def applyOperators(self):
@@ -225,21 +267,38 @@ class Population:
             self.seed = self.seed + 1
             random.seed(self.seed)
             choice = random.randint(0, 100)
-            if choice <= 80:
+            if choice <= 60 and i < len(self.individuals) - 1:
                 kids = self.crossover()
+                kids[0].operation = 'C'
+                kids[1].operation = 'C'
                 i = i + 2
-            else:
+            elif choice < 80:
                 kids = self.mutate()
+                kids[0].operation = 'M'
                 i = i + 1
+            else:
+
+                kids = self.reproduce()
+                kids[0].operation = 'R'
+                i = i + 1
+
             for k in range(0, len(kids)):
+                
                 new_population.append(kids[k])
+                
         
         return new_population
+
+    def reproduce(self):
+        parent = self.tournamentSelection()
+        return [parent.copy()]
+
     def crossover(self):
         parent1 = self.tournamentSelection()
         parent2 = self.tournamentSelection()
 
         parent1.crossover(parent2)
+
         return [parent1, parent2]
 
     def mutate(self):  
@@ -248,34 +307,39 @@ class Population:
         return [parent]
 
     def evaluatePopulation(self):
+        count = 1
         for i in self.individuals:
+            
             i.evaluate()
+            i.evaluator.courses = i.evaluator.copy_courses.copy()
+            
+            count = count + 1
             
 
     def createPopulation(self):
         for i in range(0, int(self.num_individuals / 2)):
             #grow
-            new_individual = Chromosome(self.seed, self.max_depth, self.max_depth - i + 2, self.problems, self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day, self.perturbative_max_length, 1)
+            new_individual = Chromosome(self.seed, self.max_depth, self.max_depth - i + 2, self.problems.copy(), self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day, self.perturbative_max_length, 1)
             # new_individual.showTree()
             self.individuals.append(new_individual)
 
 
         for i in range(0, int(self.num_individuals / 2)):
             #Full
-            new_individual = Chromosome(self.seed, self.max_depth, self.max_depth - i + 2, self.problems, self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day, self.perturbative_max_length, 0)
+            new_individual = Chromosome(self.seed, self.max_depth, self.max_depth - i + 2, self.problems.copy(), self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day, self.perturbative_max_length, 0)
             # new_individual.showTree()
             self.individuals.append(new_individual)
 
         self.evaluatePopulation()
 
 class Chromosome:
-    def __init__(self, seed, max_depth, depth, problems, rooms, courses, days, curricula, num_rooms, periods_per_day, perturbative_max_length = 10, choice = 0, copy = False, tree = None):
+    def __init__(self, seed, max_depth, depth, problems, rooms, courses, days, curricula, num_rooms, periods_per_day, perturbative_max_length = 10, choice = 0, copy = False, tree = None, evaluator = None):
         self.max_depth = max_depth
         self.depth = depth
         self.seed = seed
         self.problems = problems
         self.rooms = rooms
-        self.courses = courses
+        self.courses = courses.copy()
         self.days = days
         self.curricula = curricula
         self.num_rooms = num_rooms
@@ -283,13 +347,19 @@ class Chromosome:
         self.choice = choice
         if copy == False:
             self.createTree(choice)
+            self.evaluator = Evaluator(self.seed, self.problems, self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day)
+            
         else:
             self.tree = tree.copy()
-        self.evaluator = Evaluator(self.seed, self.problems, self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day)
+            self.evaluator = evaluator.copy()
+            
+        
         self.perturbative_max_length = perturbative_max_length
+        self.operation = "n"
+        self.quality = 9999999
         
     def copy(self):
-        copy = Chromosome(self.seed, self.max_depth, self.depth, self.problems, self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day, self.perturbative_max_length , self.choice, True, self.tree)
+        copy = Chromosome(self.seed, self.max_depth, self.depth, self.problems, self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day, self.perturbative_max_length , self.choice, True, self.tree, self.evaluator)
         copy.fitness = self.fitness
         return copy
 
@@ -301,13 +371,17 @@ class Chromosome:
         soft = self.evaluator.applyPerturbativeHeuristics(heuristic)
         return soft
 
+    def actuallyApplyPerturbativeHeuristics(self, heuristic):
+        soft = self.evaluator.actuallyApplyPerturbativeHeuristics(heuristic)
+        return soft
+
     def createTree(self, choice = 0):
         if choice == 0:
-            # print("full")
+      
             self.tree = Tree(self.seed, self.max_depth)
             self.tree.createFull()
         else:
-            # print("grow")
+           
             self.tree = Tree(self.seed, self.max_depth)
             self.tree.createGrow()
             
@@ -322,6 +396,8 @@ class Chromosome:
         print("--------- show tree ---------")
         self.tree.showTree(self.tree.root)
 
+    def print(self):
+        self.evaluator.print()
 
 class Tree:
     def __init__(self, seed, max_depth = 6, tree = None):
@@ -443,8 +519,15 @@ class Tree:
             functional_node = self.returnFuntionalNode()
             num_children = 2 if functional_node.id == 0 else random.randint(2, 3)
             if functional_node.id == 1:
-                for i in range(0, num_children):
-                    functional_node.children.append(self.full(level + 1))
+           
+                if num_children == 2:
+                    functional_node.children.append(self.full(level + 1, 0))
+                    functional_node.children.append(self.full(level + 1, 1))
+                else:
+                    functional_node.children.append(self.full(level + 1, 0))
+                    functional_node.children.append(self.full(level + 1, 0))
+                    functional_node.children.append(self.full(level + 1, 1))
+                    
             else:
                 functional_node.children.append(self.full(level + 1, 0))
                 functional_node.children.append(self.full(level + 1, 1))
@@ -456,8 +539,13 @@ class Tree:
             functional_node = self.returnFuntionalNode()
             num_children = 2 if functional_node.id == 0 else random.randint(2, 3)
             if functional_node.id == 1:
-                for i in range(0, num_children):
-                    functional_node.children.append(self.full(level + 1))
+                if num_children == 2:
+                    functional_node.children.append(self.full(level + 1, 0))
+                    functional_node.children.append(self.full(level + 1, 1))
+                else:
+                    functional_node.children.append(self.full(level + 1, 0))
+                    functional_node.children.append(self.full(level + 1, 0))
+                    functional_node.children.append(self.full(level + 1, 1))
             else:
                 functional_node.children.append(self.full(level + 1, 0))
                 functional_node.children.append(self.full(level + 1, 1))
@@ -486,8 +574,13 @@ class Tree:
                 node.num_children = num_children
                
                 if node.id == 0:
-                    for i in range(0, num_children):
-                        node.children.append(self.grow(level + 1))
+                    if num_children == 2:
+                        node.children.append(self.full(level + 1, 0))
+                        node.children.append(self.full(level + 1, 1))
+                    else:
+                        node.children.append(self.full(level + 1, 0))
+                        node.children.append(self.full(level + 1, 0))
+                        node.children.append(self.full(level + 1, 1))
                 else:
                     node.children.append(self.grow(level + 1, 0))
                     node.children.append(self.grow(level + 1, 1))
@@ -523,27 +616,13 @@ class Tree:
     def crossover(self, parent2):
         point1 = self.findCrossoverPoint()
         point2 = parent2.tree.findCrossoverPoint(point1.id)
-        # print(" ======================== BEFORE =================================")
-        # self.showTree(self.root)
-        # print('\n\n')
-        # parent2.showTree()
-        # print('point1')
-        # print(point1.description)
-        # print('point2')
-        # print(point2.description)
+        
         point1_copy = self.copyHelper(point1)
         point2_copy = self.copyHelper(point2)
 
         point1 = point2_copy
         point2 = point1_copy
-        # print('point1')
-        # print(point1.description)
-        # print('point2')
-        # print(point2.description)
-        # print(" ======================== AFTER!!!! =================================")
-        # self.showTree(self.root)
-        # print('\n\n')
-        # parent2.showTree()
+      
 
     def mutate(self):
         found = False
