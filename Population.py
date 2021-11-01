@@ -16,16 +16,14 @@ class Population:
         self.periods_per_day = periods_per_day
         self.num_rooms = num_rooms
         self.evaluator = Evaluator(self.seed, self.problems, self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day)
-        self.num_perturbative = num_perturbative
-        self.tournament_size = tournament_size
-        self.perturbative_max_length = perturbative_max_length
-        
-        self.perturbativeHeuristics = []
-        self.perturbative_heuristic = []
+ 
 
+        self.tournament_size = tournament_size
+       
+        self.best_individual = None
         self.createPopulation()
-        self.createPerturbativeHeuristics()
-        self.createPerturbativeHeuristicPopulation()
+
+
 
 
     def print(self):
@@ -36,188 +34,37 @@ class Population:
             print(" ================================================== + " + str(count) + " -- fitness  " + str(i.fitness) + " -- quality  " + str(i.quality) + " ================================================== + ")
             count = count + 1
             
-
-
-    def createPerturbativeHeuristics(self):
-        new_node = Node(True, "Two violation mutation", 0, 'perturbative')
-        self.perturbativeHeuristics.append(new_node)
-
-        new_node = Node(True, "One violation mutation", 1, 'perturbative')
-        self.perturbativeHeuristics.append(new_node)
-
-        new_node = Node(True, "Random swap", 2, 'perturbative')
-        self.perturbativeHeuristics.append(new_node)
-
-        new_node = Node(True, "Row swap", 3, 'perturbative')
-        self.perturbativeHeuristics.append(new_node)
-
-        new_node = Node(True, "One violation row swap", 4, 'perturbative')
-        self.perturbativeHeuristics.append(new_node)
-
-    def createPerturbativeHeuristicPopulation(self):
-        for num in range(0, self.num_perturbative):
-            heuristic = []
-            total_heuristic = {
-                "list": [],
-                "fitness": 0
-            }
-            length = random.randint(0, self.perturbative_max_length - 1)
-            for i in range(0, length):
-                self.seed = self.seed + 1
-                
-                random.seed(self.seed)
-                choice = random.randint(0, 4)
-                if choice == 0:
-                    heuristic.append(self.perturbativeHeuristics[0].copy())
-                elif choice == 1:
-                    heuristic.append(self.perturbativeHeuristics[1].copy())
-                elif choice == 2:
-                    heuristic.append(self.perturbativeHeuristics[2].copy())
-                elif choice == 3:
-                    heuristic.append(self.perturbativeHeuristics[3].copy())
-                else:
-                    heuristic.append(self.perturbativeHeuristics[4].copy())
-            total_heuristic['list'] = heuristic
-            self.perturbative_heuristic.append(total_heuristic)
+    def printBest(self, time, seed):
+        self.individuals.sort(key=lambda x: x.fitness, reverse=False)
+        self.individuals.sort(key=lambda x: x.quality, reverse=False)
+        i = self.individuals[0]
+        self.individuals[0].evaluate()
+        self.individuals[0].evaluator.print()
         
-    def showAllPerturbativeHeuristics(self):
-        print(" ==== showAllPerturbativeHeuristics ==== ")
-        for i in range(0, len(self.perturbative_heuristic)):
-            self.showPerturbativeHeuristic(i)
+        print(" BEST TIMETABLE ================================================= -- fitness  " + str(i.fitness) + " -- quality  " + str(i.quality) + " ================================================== + \n")
+        print(" ------- construction heuristic used ------- ")
+        self.individuals[0].showTree()
+    
+        self.writeToFile(self.individuals[0].tree, i.fitness, i.quality, i, seed, time)
 
-    def showPerturbativeHeuristic(self, index):
-        show_list = []
-        for node in self.perturbative_heuristic[index]['list']:
-            show_list.append(node.description)
-        
-        print(" showPerturbativeHeuristic --- ")
-        print(show_list)
+    def writeToFile(self, tree, fitness, quality, individual, seed, time):
+        f=open("results" + str(seed) + ".txt", "a+")
+        f.write("SEED: " + str(seed) + "\n")
+        f.write("RUNTIME: " + str(time) + "\n")
+        f.write(" BEST TIMETABLE ================================================= -- fitness  " + str(fitness) + " -- quality  " + str(quality) + " ================================================== + \n")
+        i = 1
+        for day in individual.evaluator.timetable.days:
+            f.write("--------- DAY ( " + str(i) + " ) -----------\n")
+            i = i + 1
+            p = 1
+            for period in day:
+                f.write("\n ++++++ PERIOD ( " + str(p) + " ) ++++++\n")
+                p = p + 1
+                for room in period:
+                    f.write(str(room) + "\n")
+   
 
-    def applyPerturbativeHeuristics(self):
-        for h in range(0, len(self.perturbative_heuristic)):
-            fitness = 0
-            for s in range(0, len(self.individuals)):
-                old_quality = int(self.individuals[s].quality)
-         
-                self.individuals[s].quality = self.individuals[s].applyPerturbativeHeuristics(self.perturbative_heuristic[h]['list'])
-                fitness = fitness + (old_quality - self.individuals[s].quality )
-               
-            self.perturbative_heuristic[h]['fitness'] = fitness
 
-    def hillClimb(self):
-        for h in range(0, len(self.perturbative_heuristic)):
-            fitness = 0
-            steps = 0
-            improvement = True
-            while improvement == True and steps < 20:
-                for s in range(0, len(self.individuals)):
-                    old_quality = int(self.individuals[s].quality)
-                    self.individuals[s].quality = self.individuals[s].applyPerturbativeHeuristics(self.perturbative_heuristic[h]['list'])
-                    fitness = fitness + (old_quality - self.individuals[s].quality )
-                improvement = True if fitness > self.perturbative_heuristic[h]['fitness'] else False
-                if improvement == True:
-                    for s in range(0, len(self.individuals)):
-                        self.individuals[s].quality = self.individuals[s].actuallyApplyPerturbativeHeuristics(self.perturbative_heuristic[h]['list'])
-                self.perturbative_heuristic[h]['fitness'] = fitness
-                steps = steps + 1
-        print(len(self.perturbative_heuristic))
-        for h in self.perturbative_heuristic:
-            print("hill climb fitness: " + str(h['fitness']))
-
-    def evolvePerturbativeHeuristic(self):
-        count = 0
-        temp_heuristics = []
-        while count < len(self.perturbative_heuristic):
-            self.seed = self.seed + 1
-            random.seed(self.seed)
-            choice = random.randint(0, 100)
-            if choice < 55:
-                kids = self.crossOverPerturbativeHeuristic()
-            elif choice < 66:
-                kids = self.mutatePerturbativeHeuristic(0)
-            elif choice < 78:
-                kids = self.mutatePerturbativeHeuristic(1)
-            elif choice < 89:
-                kids = self.mutatePerturbativeHeuristic(2)
-            else:
-                kids = self.reproducePerturbativeHeuristic()
-
-            for k in kids:
-                count = count + 1
-                temp_heuristics.append(k)
-        self.perturbative_heuristic = temp_heuristics
-        
-    def reproducePerturbativeHeuristic(self):
-        heuristic = self.selectPerturbativeHeuristics()
-        return [self.copyHeuristic(heuristic)]
-
-    def hillClimb(self):
-        pass
-      
-    def mutatePerturbativeHeuristic(self, type):
-        heuristic = self.selectPerturbativeHeuristics()
-        if type == 0: # add heursitc to current heauristc
-            choice = random.randint(0, 4)
-            heuristic['list'].append(self.perturbativeHeuristics[choice])
-        elif type == 1: # remove heuristc
-            if len(heuristic['list']) > 0:
-                heuristic['list'].pop()
-        else: # change to new heuristic
-            choice = random.randint(0, 4)
-            random_index = random.randint(0, len(heuristic['list']) - 1)
-            heuristic['list'][random_index] = self.perturbativeHeuristics[choice]
-
-        return [heuristic]
-
-    def crossOverPerturbativeHeuristic(self):
-        parent1 = self.selectPerturbativeHeuristics()
-        parent2 = self.selectPerturbativeHeuristics()
-        self.seed = self.seed + 1
-        random.seed(self.seed)
-
-        if len(parent1['list']) > len(parent2['list']): #find cross point that will work for both
-            choice = random.randint(0, len(parent2['list']) - 1)
-            length = len(parent1['list'])
-        else:
-            choice = random.randint(0, len(parent1['list']) - 1)
-            length = len(parent2['list'])
-        length_parent1 = len(parent1['list'])
-        length_parent2 = len(parent2['list'])
-        
-        for i in range(choice, length):
-           
-            if i < length_parent1 and i < length_parent2:
-                temp = parent1['list'][i].copy()
-                parent1['list'][i] = parent2['list'][i].copy()
-                parent2['list'][i] = temp
-            elif i < length_parent1:
-                temp = parent1['list'][i].copy()
-                parent2['list'].append(temp)
-            else:
-                temp = parent2['list'][i].copy()
-                parent2['list'].append(temp)
-        if length_parent2 > length_parent1:
-            for i in range(0, length_parent2 - length_parent1):
-                del parent2['list'][-1]
-
-        if length_parent1 > length_parent2:
-            for i in range(0, length_parent1 - length_parent2):
-                del parent1['list'][-1]
-
-        return [parent1, parent2]
-
-    def selectPerturbativeHeuristics(self):
-        heuristic_pool = []
-        
-        for i in range(self.tournament_size):
-            self.seed = self.seed + 1
-            random.seed(self.seed)
-            choice = random.randint(0, len(self.perturbative_heuristic) - 1)
-            heuristic_pool.append(self.perturbative_heuristic[choice])
-
-        heuristic_pool.sort(key=lambda x: x['fitness'], reverse=False)
-        
-        return self.copyHeuristic(heuristic_pool[0])
 
     def copyHeuristic(self, heuristic):
         copy = {
@@ -243,11 +90,7 @@ class Population:
         self.evaluatePopulation()
         self.individuals = self.applyOperators()
         self.evaluatePopulation()
-        
-       
-        
-        
-        
+
 
     def tournamentSelection(self):
         tournament_pool = []
@@ -307,14 +150,13 @@ class Population:
         return [parent]
 
     def evaluatePopulation(self):
-        count = 1
-        for i in self.individuals:
+        for i in range(0, len(self.individuals)):
+            self.individuals[i].evaluate()
+            self.individuals[i].evaluator.courses = self.individuals[i].evaluator.copy_courses.copy()
+            if self.individuals[i].fitness < self.best_individual.fitness:
+                self.best_individual = self.individuals[i].copy()
             
-            i.evaluate()
-            i.evaluator.courses = i.evaluator.copy_courses.copy()
-            
-            count = count + 1
-            
+        
 
     def createPopulation(self):
         for i in range(0, int(self.num_individuals / 2)):
@@ -323,13 +165,15 @@ class Population:
             # new_individual.showTree()
             self.individuals.append(new_individual)
 
+        
+
 
         for i in range(0, int(self.num_individuals / 2)):
             #Full
             new_individual = Chromosome(self.seed, self.max_depth, self.max_depth - i + 2, self.problems.copy(), self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day, self.perturbative_max_length, 0)
             # new_individual.showTree()
             self.individuals.append(new_individual)
-
+        self.best_individual = self.individuals[0].copy()
         self.evaluatePopulation()
 
 class Chromosome:
@@ -345,6 +189,7 @@ class Chromosome:
         self.num_rooms = num_rooms
         self.periods_per_day = periods_per_day
         self.choice = choice
+        self.fitness = 999999999
         if copy == False:
             self.createTree(choice)
             self.evaluator = Evaluator(self.seed, self.problems, self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day)
@@ -356,7 +201,7 @@ class Chromosome:
         
         self.perturbative_max_length = perturbative_max_length
         self.operation = "n"
-        self.quality = 9999999
+        self.quality = 999999999
         
     def copy(self):
         copy = Chromosome(self.seed, self.max_depth, self.depth, self.problems, self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day, self.perturbative_max_length , self.choice, True, self.tree, self.evaluator)
@@ -367,13 +212,6 @@ class Chromosome:
         self.evaluator.evaluate(self.tree)
         self.fitness = self.evaluator.calculateFitness()
 
-    def applyPerturbativeHeuristics(self, heuristic):
-        soft = self.evaluator.applyPerturbativeHeuristics(heuristic)
-        return soft
-
-    def actuallyApplyPerturbativeHeuristics(self, heuristic):
-        soft = self.evaluator.actuallyApplyPerturbativeHeuristics(heuristic)
-        return soft
 
     def createTree(self, choice = 0):
         if choice == 0:
@@ -441,10 +279,16 @@ class Tree:
     def createFuntionalSet(self):
         self.functional_set = []
 
-        new_node = Node(False, "%", 0, 2)
+        new_node = Node(False, "Select and Place", 0, 2)
         self.functional_set.append(new_node)
 
-        new_node = Node(False, "#", 1, 3)
+        new_node = Node(False, "Sort Ascending", 1, 2)
+        self.functional_set.append(new_node)
+
+        new_node = Node(False, "Sort Descending", 2, 2)
+        self.functional_set.append(new_node)
+
+        new_node = Node(False, "+", 3, 2)
         self.functional_set.append(new_node)
 
         
@@ -455,10 +299,8 @@ class Tree:
         return self.functional_set[choice].copy()
 
     def returnTerminalNode(self, type = 0):
-        if type == 0: #"characteristics"
-            choice = random.randint(0, len(self.terminal_set) - 4)
-        else: #"period"
-            choice = random.randint(6, len(self.terminal_set) - 1)
+
+        choice = random.randint(0, len(self.terminal_set) - 1)
 
         return self.terminal_set[choice].copy()
         
@@ -612,6 +454,29 @@ class Tree:
             for i in range(0, len(node.children)):
                 self.showTree(node.children[i], level + 1)
 
+    def showTreeToFile(self, file, node = None, level = 0):
+      
+        if node == None:
+            pass
+        elif level == 0:
+            # at root
+            file.write(node.description + "\n")  
+               
+            for i in range(0, len(node.children)):
+                self.showTreeToFile(file, node.children[i], level + 1)
+        elif node.terminal == True:
+            # file.writelines("-" % l for l in range(0, level + 1))
+            for i in range(0, level + 1):
+                file.write("-")
+            file.write(" " + node.description + "\n")
+        else:
+     
+            for i in range(0, level + 1):
+                file.write("-")
+            file.write(" " + node.description + "\n")
+            for i in range(0, len(node.children)):
+                self.showTreeToFile(file, node.children[i], level + 1)
+
 
     def crossover(self, parent2):
         point1 = self.findCrossoverPoint()
@@ -764,13 +629,15 @@ class Tree:
 
 
 class Node:
-    def __init__(self, terminal, description, id, type, level = 0, num_children = 0):
+    def __init__(self, terminal, description, idp, typep, level = 0, num_children = 0):
         self.terminal = terminal
         self.description = description
-        self.id = id
+        self.id = idp
         self.num_children = num_children
         self.children = []
         self.level = level
+        self.type = typep
+
     
     def setLevel(self, level):
         self.level = level

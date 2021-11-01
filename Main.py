@@ -1,26 +1,22 @@
 from Population import Population
 from Data import Reader
-
-seed = 1
+import timeit
+seed = 1020
 data = Reader()
 num_problem = 0
-
-population = Population(seed, 3, 5, data.problems, data.rooms[num_problem], data.courses[num_problem], data.days[num_problem], data.curricula[num_problem], data.periods_per_day[num_problem], data.num_rooms[num_problem], 10, 10)
-count = 50
-while population.checkGeneration(1) == False:
+start = timeit.default_timer()
+population = Population(seed, 6, 100, data.problems, data.rooms[num_problem], data.courses[num_problem], data.days[num_problem], data.curricula[num_problem], data.periods_per_day[num_problem], data.num_rooms[num_problem], 10, 50)
+count = 20
+while population.checkGeneration(1) == False and count > 0 :
+    print("generation --- " + str(count))
     population.nextGeneration()
     count = count - 1
 
-print(" ----- GENERATION PHASE COMPLETED ----- ")
-# population.print()
-# wait = input("wait and see")
-population.evolvePerturbativeHeuristic()
 
 
-num_permutations = 20
-for i in range(0, num_permutations):
-    # population.applyPerturbativeHeuristics()
-    population.hillClimb()
 
-print(" ----- PERTURBATION PHASE COMPLETED ----- ")
-# population.print()
+
+
+stop = timeit.default_timer()
+population.printBest(stop - start, seed)
+
