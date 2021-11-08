@@ -422,11 +422,13 @@ class Chromosome:
 
 class Tree:
     def __init__(self, seed, max_depth = 6, tree = None, type = 0):
+        self.max_depth = max_depth
         if type == 1:
             self.seed = seed
             random.seed(seed)
+            self.createForGHP()
             self.root = self.fullGHP()
-            self.max_depth = max_depth
+            
 
         else:
             if tree != None:

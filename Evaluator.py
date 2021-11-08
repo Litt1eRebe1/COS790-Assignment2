@@ -887,7 +887,7 @@ class Evaluator:
                         self.unscheduled_rooms.append(room)
                     else:
                         self.scheduled_rooms.append(room)
-        print(len(self.scheduled_rooms))
+        
         for course in self.copy_courses:
             if self.courseScheduled(chromosome,course) == True:
                 self.scheduled_courses.append(course)
