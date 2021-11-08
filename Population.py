@@ -35,8 +35,6 @@ class Population:
             i.evaluator.print()
             print(" ================================================== + " + str(count) + " -- fitness  " + str(i.fitness) + " -- quality  " + str(i.quality) + " ================================================== + ")
             count = count + 1
-            
-
 
     def createPerturbativeHeuristics(self):
         new_node = Node(True, "Two violation mutation", 0, 'perturbative')
@@ -64,7 +62,6 @@ class Population:
             length = random.randint(0, self.perturbative_max_length - 1)
             for i in range(0, length):
                 self.seed = self.seed + 1
-                
                 random.seed(self.seed)
                 choice = random.randint(0, 4)
                 if choice == 0:
@@ -89,7 +86,6 @@ class Population:
         show_list = []
         for node in self.perturbative_heuristic[index]['list']:
             show_list.append(node.description)
-        
         print(" showPerturbativeHeuristic --- ")
         print(show_list)
 
@@ -151,8 +147,7 @@ class Population:
         heuristic = self.selectPerturbativeHeuristics()
         return [self.copyHeuristic(heuristic)]
 
-    def hillClimb(self):
-        pass
+
       
     def mutatePerturbativeHeuristic(self, type):
         heuristic = self.selectPerturbativeHeuristics()
@@ -166,7 +161,6 @@ class Population:
             choice = random.randint(0, 4)
             random_index = random.randint(0, len(heuristic['list']) - 1)
             heuristic['list'][random_index] = self.perturbativeHeuristics[choice]
-
         return [heuristic]
 
     def crossOverPerturbativeHeuristic(self):
@@ -214,7 +208,6 @@ class Population:
             random.seed(self.seed)
             choice = random.randint(0, len(self.perturbative_heuristic) - 1)
             heuristic_pool.append(self.perturbative_heuristic[choice])
-
         heuristic_pool.sort(key=lambda x: x['fitness'], reverse=False)
         
         return self.copyHeuristic(heuristic_pool[0])
@@ -230,23 +223,16 @@ class Population:
 
         return copy
     def checkGeneration(self, perc):
-        
         num_acceptable = int(perc * len(self.individuals))
         for i in self.individuals:
-            
             if i.fitness == 0:  
                 num_acceptable = num_acceptable - 1
-        
         return num_acceptable <= 0
 
     def nextGeneration(self):
         self.evaluatePopulation()
         self.individuals = self.applyOperators()
         self.evaluatePopulation()
-        
-       
-        
-        
         
 
     def tournamentSelection(self):
@@ -255,7 +241,6 @@ class Population:
             self.seed = self.seed + 1
             random.seed(self.seed)
             choice = random.randint(0, len(self.individuals) - 1)
-           
             tournament_pool.append(self.individuals[choice].copy())
         tournament_pool.sort(key=lambda x: x.fitness, reverse=False)
         return tournament_pool[0]
@@ -277,16 +262,13 @@ class Population:
                 kids[0].operation = 'M'
                 i = i + 1
             else:
-
                 kids = self.reproduce()
                 kids[0].operation = 'R'
                 i = i + 1
 
             for k in range(0, len(kids)):
-                
                 new_population.append(kids[k])
-                
-        
+
         return new_population
 
     def reproduce(self):
@@ -296,9 +278,7 @@ class Population:
     def crossover(self):
         parent1 = self.tournamentSelection()
         parent2 = self.tournamentSelection()
-
         parent1.crossover(parent2)
-
         return [parent1, parent2]
 
     def mutate(self):  
@@ -309,28 +289,67 @@ class Population:
     def evaluatePopulation(self):
         count = 1
         for i in self.individuals:
-            
             i.evaluate()
             i.evaluator.courses = i.evaluator.copy_courses.copy()
-            
             count = count + 1
             
-
     def createPopulation(self):
         for i in range(0, int(self.num_individuals / 2)):
             #grow
             new_individual = Chromosome(self.seed, self.max_depth, self.max_depth - i + 2, self.problems.copy(), self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day, self.perturbative_max_length, 1)
-            # new_individual.showTree()
             self.individuals.append(new_individual)
-
-
         for i in range(0, int(self.num_individuals / 2)):
             #Full
             new_individual = Chromosome(self.seed, self.max_depth, self.max_depth - i + 2, self.problems.copy(), self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day, self.perturbative_max_length, 0)
-            # new_individual.showTree()
             self.individuals.append(new_individual)
 
         self.evaluatePopulation()
+
+    def createForGHP(self, pop_size):
+        self.population_GHP = []
+        self.pop_size_GHP = pop_size
+        for i in range(0, pop_size):
+            ghp_chromosome = GHPChromosome(self.seed, self.max_depth, self.problems, self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day, self.individuals)
+          
+            self.population_GHP.append(ghp_chromosome)
+
+    def evaluateGHP(self):
+        for i in range(0, self.pop_size_GHP):
+            self.population_GHP[i].evaluateGHP()
+       
+            
+class GHPChromosome:
+    def __init__(self, seed, max_depth, problems, rooms, courses, days, curricula, num_rooms, periods_per_day, individuals):
+        self.periods_per_day = periods_per_day
+        self.num_rooms = num_rooms
+        self.curricula = curricula
+        self.days = days
+        self.courses = courses
+        self.rooms = rooms
+        self.problems = problems
+        self.max_depth = max_depth
+        self.seed = seed
+        self.tree = self.createTreeGHP()
+        self.individuals = individuals
+        
+        self.evaluator = Evaluator(self.seed, self.problems, self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day)
+    
+    def createTreeGHP(self):
+        tree = Tree(self.seed, self.max_depth, None, 1)
+        # tree.createFullGHP()
+        return tree
+
+    def showTree(self):
+        print("\n")
+        print("--------- show tree ---------")
+     
+        self.tree.showTreeGHP(self.tree.root)
+
+    def evaluateGHP(self):
+        print("evaluateGHP")
+        self.showTree()
+        self.evaluator.evaluateGHP(self.individuals[0], self.tree)
+        
 
 class Chromosome:
     def __init__(self, seed, max_depth, depth, problems, rooms, courses, days, curricula, num_rooms, periods_per_day, perturbative_max_length = 10, choice = 0, copy = False, tree = None, evaluator = None):
@@ -374,7 +393,7 @@ class Chromosome:
     def actuallyApplyPerturbativeHeuristics(self, heuristic):
         soft = self.evaluator.actuallyApplyPerturbativeHeuristics(heuristic)
         return soft
-
+    
     def createTree(self, choice = 0):
         if choice == 0:
       
@@ -399,15 +418,189 @@ class Chromosome:
     def print(self):
         self.evaluator.print()
 
+
+
 class Tree:
-    def __init__(self, seed, max_depth = 6, tree = None):
-        if tree != None:
-            self.copy(tree)
-        else:
+    def __init__(self, seed, max_depth = 6, tree = None, type = 0):
+        self.max_depth = max_depth
+        if type == 1:
             self.seed = seed
             random.seed(seed)
-            self.constructor(max_depth)
+            self.createForGHP()
+            self.root = self.fullGHP()
+            
 
+        else:
+            if tree != None:
+                self.copy(tree)
+            else:
+                self.seed = seed
+                random.seed(seed)
+                self.constructor(max_depth)
+    
+    def returnIndex(self):
+        return Node(True, "index", 10, "constant")
+        
+    def returnReturn(self):
+        return Node(True, "return", -1, "exit")
+
+    def fullGHP(self, level = 0, type = 0):
+      
+        if level == self.max_depth: #end here
+            self.depth = self.max_depth
+            if type == 0:
+                return self.returnTerminalCourse()
+            elif type == 1:
+                return self.returnTerminalRoom()
+            elif type == 2:
+                return self.returnReturn()
+            elif type == 3:
+                return self.returnReturn()
+            elif type == 4:
+                return self.returnIndex()
+            elif type ==5:
+                return self.returnIndex()
+
+        elif level == 0: #root
+            functional_node = self.returnFuntionalNodeGPH()
+            if functional_node.id == 0:
+                num_children = 1
+            elif functional_node.id == 1:
+                num_children = 1
+            elif functional_node.id == 2:
+                num_children = 2
+            elif functional_node.id == 3:
+                num_children = 2
+            elif functional_node.id == 4:
+                num_children = 1
+            else:
+                num_children = 1
+
+            for i in range(0, num_children):
+                functional_node.children.append(self.fullGHP(level + 1, functional_node.id))
+      
+            functional_node.num_children = num_children
+            self.root = functional_node
+            return self.root
+        else:
+            # create funtional node
+            functional_node = self.returnFuntionalNodeGPH()
+            if functional_node.id == 0:
+                num_children = 1
+                functional_node.children.append(self.returnTerminalCourse())
+            elif functional_node.id == 1:
+                num_children = 1
+                functional_node.children.append(self.returnTerminalRoom())
+            elif functional_node.id == 2:
+                num_children = 2
+            elif functional_node.id == 3:
+                num_children = 2
+            elif functional_node.id == 4:
+                num_children = 1
+                functional_node.children.append(self.returnIndex())
+            else:
+                num_children = 1
+                functional_node.children.append(self.returnIndex())
+
+            for i in range(0, num_children):
+                functional_node.children.append(self.fullGHP(level + 1, functional_node.id))
+
+            functional_node.num_children = num_children
+            self.depth = self.max_depth
+            return functional_node
+
+    def returnIndex(self):
+        return Node(True, "index", 10, "constant")
+        
+    def returnReturn(self):
+        return Node(True, "return", -1, "exit")
+
+    def createForGHP(self):
+        self.createFuntionalSetGPH()
+        self.createTerminalSetGHP()
+        self.createData()
+
+
+    def returnFuntionalNodeGPH(self):
+        self.seed = self.seed + 1
+        random.seed(self.seed)
+
+        choice = random.randint(0, 4)
+        return self.functional_set_GHP[choice].copy()
+
+    def createFuntionalSetGPH(self):
+        self.functional_set_GHP = []
+        
+        new_node = Node(False, "Sort courses", 0, 'functions', 0, num_children=1, seed=self.seed)
+        self.functional_set_GHP.append(new_node)
+        
+        new_node = Node(False, "Sort rooms", 1, 'functions', 0, num_children=1, seed=self.seed) #@todo implement creation (add attributes)
+        self.functional_set_GHP.append(new_node)
+        
+        new_node = Node(False, "If", 2, 'functions', 0, num_children=2, seed=self.seed)
+        self.functional_set_GHP.append(new_node)
+        
+        new_node = Node(False, "While", 3, 'functions', 0, num_children=2, seed=self.seed)
+        self.functional_set_GHP.append(new_node)
+        
+        new_node = Node(False, "Select", 4, 'functions', 0, num_children=1, seed=self.seed) #@todo implement index etc.
+        self.functional_set_GHP.append(new_node)
+        
+        new_node = Node(False, "Place", 5, 'functions', 0, num_children=1, seed=self.seed)
+        self.functional_set_GHP.append(new_node)
+        
+    def returnTerminalRoom(self):
+        self.seed = self.seed + 1
+        random.seed(self.seed)
+        choice = random.randint(0, len(self.room_attributes) - 1)
+    
+        return self.room_attributes["attributes"][choice]
+
+    def returnTerminalCourse(self):
+        self.seed = self.seed + 1
+        random.seed(self.seed)
+        choice = random.randint(0, len(self.room_attributes) - 1)
+        return self.course_attributes["attributes"][choice]
+        
+    def createTerminalSetGHP(self):
+        self.terminal_set_GHP = []
+        self.room_attributes = {
+            type:"room",
+            "attributes" : []
+        }
+        
+        self.course_attributes = {
+            type:"course",
+            "attributes" : []
+        }
+        
+        new_node = Node(True, "Capacity", 0, 'room_terminals')
+        self.room_attributes["attributes"].append(new_node)
+        
+        new_node = Node(True, "Number teachers available", 1, 'room_terminals')
+        self.room_attributes["attributes"].append(new_node)
+        
+        new_node = Node(True, "Num students", 2, 'course_terminals')
+        self.course_attributes["attributes"].append(new_node)
+        
+        new_node = Node(True, "Num scheduled", 3, 'course_terminals')
+        self.course_attributes["attributes"].append(new_node)
+        
+    def createGlobalAttributes(self):
+        self.global_attributes = []
+        
+    def createData(self): # create last
+        self.scheduled_rooms = []
+        self.unscheduled_rooms = []
+        self.scheduled_courses = []
+        self.unscheduled_courses = []
+        
+        self.num_scheduled_rooms = 0
+        self.num_unscheduled_rooms = 0
+        self.num_scheduled_courses = 0
+        self.num_unscheduled_courses = 0
+
+        self.indexes = []
     
     def createTerminalSet(self):
         self.terminal_set = []
@@ -496,9 +689,8 @@ class Tree:
             new_node = node.copy()
             return new_node
 
-
-
-
+    def createFullGHP(self):
+        self.root = self.fullGHP()
 
     def createFull(self):
         self.root = self.full()
@@ -590,6 +782,33 @@ class Tree:
                 node = self.returnTerminalNode()
 
             return node
+
+    def showTreeGHP(self, node = None, level = 0):
+       
+        if node == None:
+            pass
+        elif level == 0:
+            # at root
+            print(node.conditional)
+            if node.conditional != None:
+                print(node.description + " ( " + str(node.conditional.operator["description"]) + " - " + str(node.conditional.attribute["description"]) + " )")  
+            else:
+                print(node.description)  
+            for i in range(0, len(node.children)):
+                self.showTreeGHP(node.children[i], level + 1)
+        elif node.terminal == True:
+            for i in range(0, level + 1):
+                print('-', end = '')
+            print(" " + node.description)
+        else:
+            for i in range(0, level + 1):
+                print('-', end = '')
+            if node.conditional != None:
+                print(node.description + " ( " + str(node.conditional.operator) + " - " + str(node.conditional.attribute) + " )")  
+            else:
+                print(node.description)  
+            for i in range(0, len(node.children)):
+                self.showTreeGHP(node.children[i], level + 1)
 
     def showTree(self, node = None, level = 0):
       
@@ -759,30 +978,62 @@ class Tree:
 
     
         
+class Conditional:
+    def __init__(self, seed):
+        self.seed = seed
+        self.operators = [{"id": 0, "description":'=='}, { "id":1, "description": '>'}]
+        self.global_attributes = [{"id": 0, "description":'num_clashes'},{ "id":1, "description":'num_unscheduled_courses'}, {"id":2,"description":'lectures_allocated'}]
+        self.constants = [0]
+        
+        self.operator = self.returnOperator()
+        self.attribute = self.returnattribute()
+        
+    def returnattribute(self):
+        self.seed = self.seed + 1
+        random.seed(self.seed)
+        choice = random.randint(0, len(self.global_attributes) - 1)
+        return self.global_attributes[choice]
 
-
+    def returnOperator(self):
+        self.seed = self.seed + 1
+        random.seed(self.seed)
+        
+        choice = random.randint(0, len(self.operators) -1 )
+        return self.operators[choice]
 
 
 class Node:
-    def __init__(self, terminal, description, id, type, level = 0, num_children = 0):
+    def __init__(self, terminal, description, id, typep, level = 0, num_children = 0, seed = 0):
+        self.seed = seed
         self.terminal = terminal
         self.description = description
         self.id = id
         self.num_children = num_children
         self.children = []
         self.level = level
+        self.conditional = None
+        self.type = typep
+        
+        
+        if self.type == 'functions':
+     
+            if self.id == 2 or self.id == 3:
+                
+                self.conditional =  Conditional(self.seed)
     
+                
+            
     def setLevel(self, level):
         self.level = level
 
     def copy(self):
         copy = Node(self.terminal, self.description, self.id, self.level, self.num_children)
-     
 
         for i in range(0, len(self.children)):
             new_child = self.children[i].copy()
             copy.children.append(new_child)
 
+        copy.conditional = self.conditional
         return copy
 
 

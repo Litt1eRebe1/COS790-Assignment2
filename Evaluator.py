@@ -871,6 +871,79 @@ class Evaluator:
     def print(self):
         self.timetable.print()
 
+    def evaluateGHP(self, chromosome, tree):
+        self.tree_ghp = tree
+        self.scheduled_rooms = []
+        self.unscheduled_rooms = []
+        self.scheduled_courses = []
+        self.unscheduled_courses = []
+        courses = self.copy_courses.copy()
+        
+        for day in chromosome.evaluator.timetable.days:
+            for period in day:
+                for room in period:
+          
+                    if room['slot']['CourseID'] == None:
+                        self.unscheduled_rooms.append(room)
+                    else:
+                        self.scheduled_rooms.append(room)
+        
+        for course in self.copy_courses:
+            if self.courseScheduled(chromosome,course) == True:
+                self.scheduled_courses.append(course)
+            else:
+                self.unscheduled_courses.append(course)
+
+        self.evaluateGhpHelper(self.tree_ghp.root)
+
+    def evaluateGhpHelper(self, node):
+        print(node.id)
+        if node == None:
+            return
+        elif node.terminal == True:
+            if node.id == 10: #index terminal
+                pass 
+            elif node.id == -1: #just return
+                return
+            elif node.id == 0: # room Capacity
+                pass 
+            elif node.id == 1: # Number teachers available room
+                print(self.unscheduled_rooms[0])
+                # self.unscheduled_rooms.sort(key=lambda x: x['fitness'], reverse=False)
+            elif node.id == 2: # course Num students
+                pass
+            elif node.id == 3: # course Num scheduled
+                pass
+        else:
+            if node.id == 0: # Sort courses
+                pass
+            elif node.id == 1: #Sort rooms
+                pass
+            elif node.id == 2: #If
+                pass
+            elif node.id == 3: #While
+                pass
+            elif node.id == 4: #Select
+                pass
+            else: #Place
+                pass
+
+            for i in range(0, len(node.children)):
+                self.evaluateGhpHelper(node.children[i])
+       
+        
+    def courseScheduled(self, chromosome, course):
+        
+        for day in chromosome.evaluator.timetable.days:
+            for period in day:
+                for room in period:
+                    
+                    if room['slot']['CourseID'] != None:
+                   
+                        if room['slot']['CourseID'] == course['CourseID']:
+                            return True
+
+        return False
 class Timetable:
     def __init__(self, num_classes, num_days, num_rooms, rooms):
         self.num_classes = num_classes
