@@ -897,7 +897,7 @@ class Evaluator:
 
         self.evaluateGhpHelper(self.tree_ghp.root)
 
-    def evaluateGhpHelper(self, node, time = 0):
+    def evaluateGhpHelper(self, node, timep = 0):
        
         if node == None:
             return
@@ -1022,11 +1022,17 @@ class Evaluator:
                     value = val_to_compare > 0
 
                 if value == True:
-                    self.evaluateGhpHelper(node)
+                    if timep == 0:
+                        new_time = time.time()
+                    self.evaluateGhpHelper(node, new_time)
 
                 else:
                     self.evaluateGhpHelper(node.children[0])
 
+                end = time.time()
+                print(end - timep)
+                if end - timep >1:
+                    self.evaluateGhpHelper(node.children[0])
 
             elif node.id == 4: #Select
                 pass
