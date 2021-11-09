@@ -1023,8 +1023,10 @@ class Evaluator:
 
                 if value == True:
                     if timep == 0:
-                        new_time = time.time()
-                    self.evaluateGhpHelper(node, new_time)
+                        timep = time.time()
+                  
+
+                    self.evaluateGhpHelper(node, timep)
 
                 else:
                     self.evaluateGhpHelper(node.children[0])
