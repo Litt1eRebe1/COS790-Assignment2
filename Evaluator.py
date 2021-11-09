@@ -1,4 +1,5 @@
 import random
+import time
 #. Each element of the population
 # represents a construction heuristic and combines the problem
 # characteristics together with a period selection heuristic. 
@@ -878,8 +879,8 @@ class Evaluator:
         self.scheduled_courses = []
         self.unscheduled_courses = []
         courses = self.copy_courses.copy()
-        
-        for day in chromosome.evaluator.timetable.days:
+        self.ghp_timetable = chromosome.evaluator.timetable.copy()
+        for day in self.ghp_timetable.days:
             for period in day:
                 for room in period:
           
@@ -896,8 +897,8 @@ class Evaluator:
 
         self.evaluateGhpHelper(self.tree_ghp.root)
 
-    def evaluateGhpHelper(self, node):
-        print(node.id)
+    def evaluateGhpHelper(self, node, time = 0):
+       
         if node == None:
             return
         elif node.terminal == True:
@@ -906,23 +907,127 @@ class Evaluator:
             elif node.id == -1: #just return
                 return
             elif node.id == 0: # room Capacity
-                pass 
+                 self.unscheduled_rooms.sort(key=lambda x: x['capacity'], reverse=False) 
             elif node.id == 1: # Number teachers available room
-                print(self.unscheduled_rooms[0])
-                # self.unscheduled_rooms.sort(key=lambda x: x['fitness'], reverse=False)
+      
+                for days in range(0, len(self.ghp_timetable.days)):
+                    for period in range(0, len(self.ghp_timetable.days[days])):
+                        num_scheduled = self.numRoomsScheduled(self.ghp_timetable.days[days][period])
+                        for room in range(0, len(self.ghp_timetable.days[days][period])):
+                            new_room = self.ghp_timetable.days[days][period][room]
+                            new_room["num_teachers"] = num_scheduled
+                            self.ghp_timetable.days[days][period][room] = new_room
+                        
+                self.unscheduled_rooms.sort(key=lambda x: x['num_teachers'], reverse=False)
             elif node.id == 2: # course Num students
-                pass
-            elif node.id == 3: # course Num scheduled
-                pass
+               
+                if len(self.unscheduled_courses) > 0:
+                    self.unscheduled_courses.sort(key=lambda x: x['Students'], reverse=False)
+                if len(self.scheduled_courses) > 0:
+                    self.scheduled_courses.sort(key=lambda x: x['Students'], reverse=False)
+            elif node.id == 3: # course Num scheduled         
+                for course in range(0, len(self.scheduled_courses)):
+                    num_scheduled = self.numLectureScheduled(self.scheduled_courses[course]['CourseID'])
+                    new_course = self.scheduled_courses[course]
+                    new_course["num_scheduled"] = num_scheduled
+                    self.scheduled_courses[course] = new_course
+                            
+                self.scheduled_courses.sort(key=lambda x: x['num_scheduled'], reverse=False)
         else:
+          
             if node.id == 0: # Sort courses
-                pass
+                if node.children[0].id == 2:
+                    if len(self.unscheduled_courses) > 0:
+                        self.unscheduled_courses.sort(key=lambda x: x['Students'], reverse=False)
+                    if len(self.scheduled_courses) > 0:
+                        self.scheduled_courses.sort(key=lambda x: x['Students'], reverse=False)
+                else:
+                    for course in range(0, len(self.scheduled_courses)):
+                        num_scheduled = self.numLectureScheduled(self.scheduled_courses[course]['CourseID'])
+                        new_course = self.scheduled_courses[course]
+                        new_course["num_scheduled"] = num_scheduled
+                        self.scheduled_courses[course] = new_course
+                            
+                    self.scheduled_courses.sort(key=lambda x: x['num_scheduled'], reverse=False)
+                self.evaluateGhpHelper(node.children[1])
+                    
             elif node.id == 1: #Sort rooms
-                pass
+                if node.children[0].id == 0: # room Capacity
+                    self.unscheduled_rooms.sort(key=lambda x: x['capacity'], reverse=False) 
+                else: # Number teachers available room
+                    for days in range(0, len(self.ghp_timetable.days)):
+                        for period in range(0, len(self.ghp_timetable.days[days])):
+                            num_scheduled = self.numRoomsScheduled(self.ghp_timetable.days[days][period])
+                            for room in range(0, len(self.ghp_timetable.days[days][period])):
+                                new_room = self.ghp_timetable.days[days][period][room]
+                                new_room["num_teachers"] = num_scheduled
+                                self.ghp_timetable.days[days][period][room] = new_room
+                            
+                    self.unscheduled_rooms.sort(key=lambda x: x['num_teachers'], reverse=False)
+                    
+                self.evaluateGhpHelper(node.children[1])
             elif node.id == 2: #If
-                pass
+                print(node.description + " ( " + str(node.conditional.operator["description"]) + " - " + str(node.conditional.attribute["description"]) + " )")  
+                if node.conditional.attribute["id"] == 0: #num_clashes
+                    total_clashes = 0
+                    for day in self.ghp_timetable.days:
+                        for period in day:
+                            for room in period:
+                                if room['slot']['CourseID'] != None:
+                                    course = self.findCourseByID(room['slot']['CourseID'])
+                                    clashes = self.checkConflictsTimetableCourse(course)
+                                    for clash in clashes:
+                                        total_clashes = total_clashes + clash['num_clashes']
+                                   
+
+                    val_to_compare = total_clashes
+                if node.conditional.attribute["id"] == 1: #num_unscheduled_courses
+                    val_to_compare = len(self.unscheduled_courses)
+                else:
+                    val_to_compare = len(self.scheduled_courses)
+
+                if node.conditional.operator["id"] == 0: # ==
+                    value = val_to_compare == 0
+                elif node.conditional.operator["id"] == 1:
+                    value = val_to_compare > 0
+                
+                if value == True:
+                    self.evaluateGhpHelper(node.children[0])
+                else:
+                    self.evaluateGhpHelper(node.children[1])
+
             elif node.id == 3: #While
-                pass
+                print(node.description + " ( " + str(node.conditional.operator["description"]) + " - " + str(node.conditional.attribute["description"]) + " )")  
+                if node.conditional.attribute["id"] == 0: #num_clashes
+                    total_clashes = 0
+                    for day in self.ghp_timetable.days:
+                        for period in day:
+                            for room in period:
+                                if room['slot']['CourseID'] != None:
+                                    course = self.findCourseByID(room['slot']['CourseID'])
+                                    clashes = self.checkConflictsTimetableCourse(course)
+                                    for clash in clashes:
+                                        total_clashes = total_clashes + clash['num_clashes']
+                                   
+
+                    val_to_compare = total_clashes
+                if node.conditional.attribute["id"] == 1: #num_unscheduled_courses
+                    val_to_compare = len(self.unscheduled_courses)
+                else:
+                    val_to_compare = len(self.scheduled_courses)
+
+                if node.conditional.operator["id"] == 0: # ==
+                    value = val_to_compare == 0
+                elif node.conditional.operator["id"] == 1:
+                    value = val_to_compare > 0
+
+                if value == True:
+                    self.evaluateGhpHelper(node)
+
+                else:
+                    self.evaluateGhpHelper(node.children[0])
+
+
             elif node.id == 4: #Select
                 pass
             else: #Place
@@ -931,7 +1036,13 @@ class Evaluator:
             for i in range(0, len(node.children)):
                 self.evaluateGhpHelper(node.children[i])
        
-        
+    def numRoomsScheduled(self, period):
+        num_scheduled = 0
+        for room in period:
+            if room["slot"]["CourseID"] != None:
+                num_scheduled = num_scheduled + 1
+        return num_scheduled
+                
     def courseScheduled(self, chromosome, course):
         
         for day in chromosome.evaluator.timetable.days:

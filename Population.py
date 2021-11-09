@@ -309,7 +309,7 @@ class Population:
         self.population_GHP = []
         self.pop_size_GHP = pop_size
         for i in range(0, pop_size):
-            ghp_chromosome = GHPChromosome(self.seed, self.max_depth, self.problems, self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day, self.individuals)
+            ghp_chromosome = GHPChromosome(self.seed, 16, self.problems, self.rooms, self.courses, self.days, self.curricula, self.num_rooms, self.periods_per_day, self.individuals)
           
             self.population_GHP.append(ghp_chromosome)
 
